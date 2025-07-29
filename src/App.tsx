@@ -1,8 +1,11 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 
 const BOARD_SIZE = 4
 const CELL_SIZE = 60
-const orbitCells = [0, 1, 2, 3, 7, 11, 15, 14, 13, 12, 8, 4]
+
+// Define outer and inner orbits separately
+const outerOrbit = [0, 1, 2, 3, 7, 11, 15, 14, 13, 12, 8, 4]
+const innerOrbit = [5, 6, 10, 9]
 
 function getCellPosition(cellIndex: number) {
   const row = Math.floor(cellIndex / BOARD_SIZE)
@@ -11,9 +14,18 @@ function getCellPosition(cellIndex: number) {
 }
 
 function getNextCell(cell: number) {
-  const idx = orbitCells.indexOf(cell)
-  if (idx === -1) return cell
-  return orbitCells[(idx - 1 + orbitCells.length) % orbitCells.length]
+  const outerIdx = outerOrbit.indexOf(cell)
+  if (outerIdx !== -1) {
+    return outerOrbit[(outerIdx - 1 + outerOrbit.length) % outerOrbit.length]
+  }
+
+  const innerIdx = innerOrbit.indexOf(cell)
+  if (innerIdx !== -1) {
+    return innerOrbit[(innerIdx - 1 + innerOrbit.length) % innerOrbit.length]
+  }
+
+  // Cell is not on any orbit, no move
+  return cell
 }
 
 // Generate unique IDs for marbles
