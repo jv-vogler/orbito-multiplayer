@@ -3,7 +3,6 @@ import { useState } from 'react'
 const BOARD_SIZE = 4
 const CELL_SIZE = 60
 
-// Define outer and inner orbits separately
 const outerOrbit = [0, 1, 2, 3, 7, 11, 15, 14, 13, 12, 8, 4]
 const innerOrbit = [5, 6, 10, 9]
 
@@ -24,19 +23,19 @@ function getNextCell(cell: number) {
     return innerOrbit[(innerIdx - 1 + innerOrbit.length) % innerOrbit.length]
   }
 
-  // Cell is not on any orbit, no move
   return cell
 }
 
-// Generate unique IDs for marbles
 function generateId() {
   return Math.random().toString(36).slice(2)
 }
 
+type Player = 'black' | 'white'
+
 export default function OrbitoFixedMarbles() {
-  // Each marble has an id and cell position
-  const [marbles, setMarbles] = useState<{ id: string; cell: number }[]>([])
+  const [marbles, setMarbles] = useState<{ id: string; cell: number; player: Player }[]>([])
   const [animating, setAnimating] = useState(false)
+  const [currentPlayer, setCurrentPlayer] = useState<Player>('black')
 
   const [marblePositions, setMarblePositions] = useState<{
     [id: string]: { x: number; y: number }
@@ -47,8 +46,10 @@ export default function OrbitoFixedMarbles() {
     if (marbles.find((m) => m.cell === cell)) return
 
     const id = generateId()
-    setMarbles((ms) => [...ms, { id, cell }])
+    setMarbles((ms) => [...ms, { id, cell, player: currentPlayer }])
     setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
+
+    setCurrentPlayer((p) => (p === 'black' ? 'white' : 'black'))
   }
 
   function animateRotation() {
@@ -64,7 +65,9 @@ export default function OrbitoFixedMarbles() {
     setMarblePositions(newPositions)
 
     setTimeout(() => {
-      setMarbles((ms) => ms.map(({ id, cell }) => ({ id, cell: getNextCell(cell) })))
+      setMarbles((ms) =>
+        ms.map(({ id, cell, player }) => ({ id, cell: getNextCell(cell), player }))
+      )
       setAnimating(false)
     }, 400)
   }
@@ -79,6 +82,7 @@ export default function OrbitoFixedMarbles() {
           border: '1px solid black',
           marginBottom: 20,
           userSelect: 'none',
+          backgroundColor: 'red', // board background red
         }}
       >
         {/* Board cells */}
@@ -96,8 +100,8 @@ export default function OrbitoFixedMarbles() {
                 width: CELL_SIZE,
                 height: CELL_SIZE,
                 boxSizing: 'border-box',
-                border: '1px solid #ddd',
-                backgroundColor: hasMarble ? '#f0f0f0' : '#fff',
+                border: '1px solid #aaa',
+                backgroundColor: '#a94134',
                 cursor: animating || hasMarble ? 'default' : 'pointer',
               }}
             />
@@ -105,19 +109,20 @@ export default function OrbitoFixedMarbles() {
         })}
 
         {/* Marbles */}
-        {marbles.map(({ id }) => {
+        {marbles.map(({ id, player }) => {
           const pos = marblePositions[id] ?? getCellPosition(0)
           return (
             <div
               key={id}
               style={{
                 position: 'absolute',
-                left: pos.x,
-                top: pos.y,
+                left: pos.x + 10, // center marble in cell (cell=60, marble=40)
+                top: pos.y + 10,
                 width: 40,
                 height: 40,
                 borderRadius: '50%',
-                backgroundColor: 'red',
+                backgroundColor: player === 'black' ? '#000' : '#fff',
+                border: '2px solid #333',
                 transition: animating ? 'left 0.4s ease, top 0.4s ease' : 'none',
                 pointerEvents: 'none',
                 zIndex: 10,
@@ -125,6 +130,9 @@ export default function OrbitoFixedMarbles() {
             />
           )
         })}
+      </div>
+      <div style={{ marginBottom: 10, fontWeight: 'bold' }}>
+        Current Player: {currentPlayer === 'black' ? 'Black' : 'White'}
       </div>
       <button onClick={animateRotation} disabled={animating || marbles.length === 0}>
         Rotate Marbles {animating ? '(Animating...)' : ''}
