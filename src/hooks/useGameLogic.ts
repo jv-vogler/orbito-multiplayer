@@ -38,20 +38,23 @@ export function useGameLogic() {
     return false
   }, [marbles, currentPlayer])
 
-  function updateGameState(newMarbles: Marble[]) {
-    const winners = checkWinners(newMarbles)
-    if (winners.black && winners.white) {
-      setWinner('draw')
-    } else if (winners.black) {
-      setWinner('black')
-    } else if (winners.white) {
-      setWinner('white')
-    } else if (newMarbles.length === BOARD_SIZE * BOARD_SIZE) {
-      if (rotationAttempts >= MAX_ROTATION_ATTEMPTS) {
+  const updateGameState = useCallback(
+    (newMarbles: Marble[]) => {
+      const winners = checkWinners(newMarbles)
+      if (winners.black && winners.white) {
         setWinner('draw')
+      } else if (winners.black) {
+        setWinner('black')
+      } else if (winners.white) {
+        setWinner('white')
+      } else if (newMarbles.length === BOARD_SIZE * BOARD_SIZE) {
+        if (rotationAttempts >= MAX_ROTATION_ATTEMPTS) {
+          setWinner('draw')
+        }
       }
-    }
-  }
+    },
+    [rotationAttempts]
+  )
 
   function handleCellClick(cell: number) {
     if (animating || winner) return
@@ -107,7 +110,7 @@ export function useGameLogic() {
     }
   }
 
-  function animateRotation() {
+  const animateRotation = useCallback(() => {
     if (animating || turnStep !== 3 || winner) return
 
     setAnimating(true)
@@ -144,7 +147,20 @@ export function useGameLogic() {
         setTurnStep(1)
       }
     }, 400)
-  }
+  }, [animating, turnStep, winner, marbles, updateGameState])
+
+  // Add keyboard event listener for spacebar rotation
+  useEffect(() => {
+    function handleKeyPress(event: KeyboardEvent) {
+      if (event.code === 'Space' || event.key === ' ') {
+        event.preventDefault() // Prevent page scroll
+        animateRotation()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyPress)
+    return () => window.removeEventListener('keydown', handleKeyPress)
+  }, [animateRotation])
 
   // Auto-skip step 1 if no enemy marbles can be moved
   useEffect(() => {
