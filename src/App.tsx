@@ -31,18 +31,22 @@ function generateId() {
 }
 
 type Player = 'black' | 'white'
+type TurnStep = 1 | 2 | 3
 
 export default function OrbitoFixedMarbles() {
   const [marbles, setMarbles] = useState<{ id: string; cell: number; player: Player }[]>([])
   const [animating, setAnimating] = useState(false)
   const [currentPlayer, setCurrentPlayer] = useState<Player>('black')
 
-  const [turnStep, setTurnStep] = useState<1 | 2 | 3>(1)
+  const [turnStep, setTurnStep] = useState<TurnStep>(1)
   const [selectedEnemyMarbleId, setSelectedEnemyMarbleId] = useState<string | null>(null)
-
   const [marblePositions, setMarblePositions] = useState<{
     [id: string]: { x: number; y: number }
   }>({})
+
+  // New states for winner and rotation attempts
+  const [winner, setWinner] = useState<Player | 'draw' | null>(null)
+  const [rotationAttempts, setRotationAttempts] = useState(0)
 
   function areCellsAdjacent(c1: number, c2: number) {
     const r1 = Math.floor(c1 / BOARD_SIZE)
@@ -77,8 +81,77 @@ export default function OrbitoFixedMarbles() {
     setTurnStep(2)
   }
 
+  // New function: checks both players for 4 in a row
+  function checkWinners(marblesArr: { cell: number; player: Player }[]): {
+    black: boolean
+    white: boolean
+  } {
+    const board = Array(BOARD_SIZE * BOARD_SIZE).fill(null) as (Player | null)[]
+    marblesArr.forEach(({ cell, player }) => {
+      board[cell] = player
+    })
+
+    const directions = [
+      { dr: 0, dc: 1 }, // horizontal
+      { dr: 1, dc: 0 }, // vertical
+      { dr: 1, dc: 1 }, // diagonal down-right
+      { dr: 1, dc: -1 }, // diagonal down-left
+    ]
+
+    function inBounds(r: number, c: number) {
+      return r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE
+    }
+
+    let blackWin = false
+    let whiteWin = false
+
+    for (let cell = 0; cell < board.length; cell++) {
+      const player = board[cell]
+      if (!player) continue
+      const row = Math.floor(cell / BOARD_SIZE)
+      const col = cell % BOARD_SIZE
+
+      for (const { dr, dc } of directions) {
+        let count = 1
+        let r = row + dr
+        let c = col + dc
+        while (inBounds(r, c) && board[r * BOARD_SIZE + c] === player) {
+          count++
+          if (count >= 4) {
+            if (player === 'black') blackWin = true
+            else whiteWin = true
+            break
+          }
+          r += dr
+          c += dc
+        }
+        if (blackWin && whiteWin) break
+      }
+      if (blackWin && whiteWin) break
+    }
+
+    return { black: blackWin, white: whiteWin }
+  }
+
+  // New function: update game winner/draw state
+  function updateGameState(newMarbles: { id: string; cell: number; player: Player }[]) {
+    const winners = checkWinners(newMarbles)
+    if (winners.black && winners.white) {
+      setWinner('draw')
+    } else if (winners.black) {
+      setWinner('black')
+    } else if (winners.white) {
+      setWinner('white')
+    } else if (newMarbles.length === BOARD_SIZE * BOARD_SIZE) {
+      // Board full but no winner yet
+      if (rotationAttempts >= 5) {
+        setWinner('draw')
+      }
+    }
+  }
+
   function handleCellClick(cell: number) {
-    if (animating) return
+    if (animating || winner) return
 
     if (turnStep === 1) {
       if (!selectedEnemyMarbleId) {
@@ -89,11 +162,12 @@ export default function OrbitoFixedMarbles() {
         }
         // Clicking empty cell skips step 1 AND places marble in that cell immediately
         if (!marbles.find((m) => m.cell === cell)) {
-          // Place marble for current player
           const id = generateId()
-          setMarbles((ms) => [...ms, { id, cell, player: currentPlayer }])
+          const newMarbles = [...marbles, { id, cell, player: currentPlayer }]
+          setMarbles(newMarbles)
           setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
-          // Advance to step 3 (rotate)
+          updateGameState(newMarbles)
+
           setTurnStep(3)
           return
         }
@@ -103,12 +177,16 @@ export default function OrbitoFixedMarbles() {
           !marbles.find((m) => m.cell === cell) &&
           areCellsAdjacent(cell, marbles.find((m) => m.id === selectedEnemyMarbleId)!.cell)
         ) {
-          setMarbles((ms) => ms.map((m) => (m.id === selectedEnemyMarbleId ? { ...m, cell } : m)))
+          const newMarbles = marbles.map((m) =>
+            m.id === selectedEnemyMarbleId ? { ...m, cell } : m
+          )
+          setMarbles(newMarbles)
           setMarblePositions((pos) => ({
             ...pos,
             [selectedEnemyMarbleId]: getCellPosition(cell),
           }))
           setSelectedEnemyMarbleId(null)
+          updateGameState(newMarbles)
           setTurnStep(2) // next place marble normally
         } else {
           setSelectedEnemyMarbleId(null) // invalid move, deselect
@@ -120,15 +198,17 @@ export default function OrbitoFixedMarbles() {
     if (turnStep === 2) {
       if (marbles.find((m) => m.cell === cell)) return
       const id = generateId()
-      setMarbles((ms) => [...ms, { id, cell, player: currentPlayer }])
+      const newMarbles = [...marbles, { id, cell, player: currentPlayer }]
+      setMarbles(newMarbles)
       setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
+      updateGameState(newMarbles)
       setTurnStep(3)
       return
     }
   }
 
   function animateRotation() {
-    if (animating || turnStep !== 3) return
+    if (animating || turnStep !== 3 || winner) return
 
     setAnimating(true)
 
@@ -140,17 +220,36 @@ export default function OrbitoFixedMarbles() {
     setMarblePositions(newPositions)
 
     setTimeout(() => {
-      setMarbles((ms) =>
-        ms.map(({ id, cell, player }) => ({ id, cell: getNextCell(cell), player }))
-      )
+      const newMarbles = marbles.map(({ id, cell, player }) => ({
+        id,
+        cell: getNextCell(cell),
+        player,
+      }))
+      setMarbles(newMarbles)
       setAnimating(false)
-      setTurnStep(1)
       setSelectedEnemyMarbleId(null)
-      setCurrentPlayer((p) => (p === 'black' ? 'white' : 'black'))
+
+      updateGameState(newMarbles)
+
+      // Check winners after update
+      const winners = checkWinners(newMarbles)
+      const hasWinner = winners.black || winners.white
+
+      // If game ended, don't continue
+      if (hasWinner || (winners.black && winners.white)) return
+
+      // If board full and no winner, increment rotation attempts
+      if (newMarbles.length === BOARD_SIZE * BOARD_SIZE) {
+        setRotationAttempts((ra) => ra + 1)
+      } else {
+        setRotationAttempts(0)
+        setCurrentPlayer((p) => (p === 'black' ? 'white' : 'black'))
+        setTurnStep(1)
+      }
     }, 400)
   }
 
-  const stepTextMap = {
+  const stepTextMap: Record<TurnStep, string> = {
     1: 'Step 1 (optional): Move ONE enemy marble to an adjacent empty cell.',
     2: 'Step 2: Place your marble on an empty cell.',
     3: 'Step 3: Rotate the board.',
@@ -186,6 +285,7 @@ export default function OrbitoFixedMarbles() {
             backgroundColor: '#a94134',
             cursor:
               animating ||
+              winner ||
               (turnStep === 1 && !isSelectedEnemy && hasMarble) ||
               (turnStep === 2 && hasMarble)
                 ? 'default'
@@ -193,7 +293,6 @@ export default function OrbitoFixedMarbles() {
             boxShadow: isSelectedEnemy ? '0 0 0 3px yellow' : undefined,
           }
 
-          // When step 1 & selected enemy, allow clicks on adjacent empty cells
           if (turnStep === 1 && selectedEnemyMarbleId && !hasMarble) {
             const selectedMarble = marbles.find((m) => m.id === selectedEnemyMarbleId)!
             if (areCellsAdjacent(i, selectedMarble.cell)) {
@@ -234,7 +333,7 @@ export default function OrbitoFixedMarbles() {
 
       {/* Show all steps with highlight */}
       <div style={{ marginBottom: 20, fontWeight: 'bold' }}>
-        {[1, 2, 3].map((step) => (
+        {([1, 2, 3] as const).map((step) => (
           <div
             key={step}
             style={{
@@ -249,12 +348,32 @@ export default function OrbitoFixedMarbles() {
         ))}
       </div>
 
+      {/* Show winner or rotation attempts left */}
+      {winner ? (
+        <div
+          style={{
+            fontWeight: 'bold',
+            fontSize: 20,
+            marginBottom: 20,
+            color: winner === 'draw' ? 'orange' : winner,
+          }}
+        >
+          {winner === 'draw'
+            ? "It's a draw!"
+            : `${winner.charAt(0).toUpperCase() + winner.slice(1)} wins!`}
+        </div>
+      ) : marbles.length === BOARD_SIZE * BOARD_SIZE ? (
+        <div style={{ fontWeight: 'bold', marginBottom: 10 }}>
+          Rotation attempts left: {5 - rotationAttempts}
+        </div>
+      ) : null}
+
       <button
         onClick={animateRotation}
-        disabled={animating || turnStep !== 3}
+        disabled={animating || turnStep !== 3 || !!winner || rotationAttempts >= 5}
         style={{
-          visibility: turnStep === 3 ? 'visible' : 'hidden',
-          height: '40px', // keep consistent height to reserve space
+          visibility: turnStep === 3 && !winner && rotationAttempts < 5 ? 'visible' : 'hidden',
+          height: '40px',
           marginTop: '10px',
         }}
       >
