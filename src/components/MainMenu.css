@@ -79,3 +79,16 @@
 .game-info p {
   margin: 0;
 }
+
+.online-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.section-title {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  opacity: 0.9;
+  font-weight: normal;
+}
