@@ -1,0 +1,117 @@
+.container {
+  padding: 20px;
+}
+
+.board {
+  position: relative;
+  border: 1px solid black;
+  margin-bottom: 20px;
+  user-select: none;
+  background-color: red;
+}
+
+.cell {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid #aaa;
+  background-color: #a94134;
+}
+
+.cellClickable {
+  cursor: pointer;
+}
+
+.cellDefault {
+  cursor: default;
+}
+
+.cellHighlighted {
+  background-color: #b55347;
+}
+
+.cellSelected {
+  box-shadow: 0 0 0 3px yellow;
+}
+
+.marble {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid #333;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.marbleBlack {
+  background-color: #000;
+}
+
+.marbleWhite {
+  background-color: #fff;
+}
+
+.marbleSelected {
+  border: 3px solid yellow;
+}
+
+.marbleAnimating {
+  transition: left 0.4s ease, top 0.4s ease;
+}
+
+.gameInfo {
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.steps {
+  margin-bottom: 20px;
+  font-weight: bold;
+}
+
+.stepActive {
+  color: yellow;
+  font-weight: bold;
+  margin-bottom: 4px;
+  text-shadow: 0 0 5px yellow;
+}
+
+.stepInactive {
+  color: white;
+  font-weight: normal;
+  margin-bottom: 4px;
+}
+
+.winner {
+  font-weight: bold;
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.winnerDraw {
+  color: orange;
+}
+
+.winnerBlack {
+  color: black;
+}
+
+.winnerWhite {
+  color: white;
+}
+
+.rotationInfo {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.rotateButton {
+  height: 40px;
+  margin-top: 10px;
+}
+
+.rotateButtonVisible {
+  visibility: visible;
+}
+
+.rotateButtonHidden {
+  visibility: hidden;
+}
