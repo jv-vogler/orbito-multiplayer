@@ -1,46 +1,61 @@
 import { useRef, useState } from 'react'
 
-const BOARD_SIZE = 4 // 4x4 grid
-const CELL_SIZE = 60 // pixels per cell
-
-// Orbit cells by index in board grid
+const BOARD_SIZE = 4
+const CELL_SIZE = 60
 const orbitCells = [0, 1, 2, 3, 7, 11, 15, 14, 13, 12, 8, 4]
 
-// Calculate x, y positions from cell index:
 function getCellPosition(cellIndex: number) {
   const row = Math.floor(cellIndex / BOARD_SIZE)
   const col = cellIndex % BOARD_SIZE
   return { x: col * CELL_SIZE, y: row * CELL_SIZE }
 }
 
-export default function AnimatedCircle() {
-  const [posIndex, setPosIndex] = useState(0)
+function getNextCell(cell: number) {
+  const idx = orbitCells.indexOf(cell)
+  if (idx === -1) return cell
+  return orbitCells[(idx - 1 + orbitCells.length) % orbitCells.length]
+}
+
+// Generate unique IDs for marbles
+function generateId() {
+  return Math.random().toString(36).slice(2)
+}
+
+export default function OrbitoFixedMarbles() {
+  // Each marble has an id and cell position
+  const [marbles, setMarbles] = useState<{ id: string; cell: number }[]>([])
   const [animating, setAnimating] = useState(false)
-  const posRef = useRef(posIndex)
 
-  // Positions are derived dynamically from orbitCells
-  const positions = orbitCells.map(getCellPosition)
+  const [marblePositions, setMarblePositions] = useState<{
+    [id: string]: { x: number; y: number }
+  }>({})
 
-  function moveNext() {
+  function handleCellClick(cell: number) {
     if (animating) return
+    if (marbles.find((m) => m.cell === cell)) return
+
+    const id = generateId()
+    setMarbles((ms) => [...ms, { id, cell }])
+    setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
+  }
+
+  function animateRotation() {
+    if (animating || marbles.length === 0) return
 
     setAnimating(true)
-    setPosIndex(posRef.current)
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        const nextIndex = (posRef.current - 1 + positions.length) % positions.length
-        setPosIndex(nextIndex)
-        posRef.current = nextIndex
-      })
+    const newPositions: typeof marblePositions = {}
+    marbles.forEach(({ id, cell }) => {
+      const nextCell = getNextCell(cell)
+      newPositions[id] = getCellPosition(nextCell)
     })
+    setMarblePositions(newPositions)
 
     setTimeout(() => {
+      setMarbles((ms) => ms.map(({ id, cell }) => ({ id, cell: getNextCell(cell) })))
       setAnimating(false)
     }, 400)
   }
-
-  const pos = positions[posIndex]
 
   return (
     <div style={{ padding: 20 }}>
@@ -51,15 +66,17 @@ export default function AnimatedCircle() {
           height: BOARD_SIZE * CELL_SIZE,
           border: '1px solid black',
           marginBottom: 20,
-          overflow: 'hidden',
+          userSelect: 'none',
         }}
       >
-        {/* Grid background for visual reference */}
+        {/* Board cells */}
         {[...Array(BOARD_SIZE * BOARD_SIZE)].map((_, i) => {
           const { x, y } = getCellPosition(i)
+          const hasMarble = marbles.some((m) => m.cell === i)
           return (
             <div
               key={i}
+              onClick={() => handleCellClick(i)}
               style={{
                 position: 'absolute',
                 left: x,
@@ -68,27 +85,37 @@ export default function AnimatedCircle() {
                 height: CELL_SIZE,
                 boxSizing: 'border-box',
                 border: '1px solid #ddd',
+                backgroundColor: hasMarble ? '#f0f0f0' : '#fff',
+                cursor: animating || hasMarble ? 'default' : 'pointer',
               }}
             />
           )
         })}
 
-        {/* Animated circle */}
-        <div
-          style={{
-            position: 'absolute',
-            width: 40,
-            height: 40,
-            borderRadius: '50%',
-            backgroundColor: 'red',
-            left: pos.x,
-            top: pos.y,
-            transition: 'left 0.4s ease, top 0.4s ease',
-          }}
-        />
+        {/* Marbles */}
+        {marbles.map(({ id }) => {
+          const pos = marblePositions[id] ?? getCellPosition(0)
+          return (
+            <div
+              key={id}
+              style={{
+                position: 'absolute',
+                left: pos.x,
+                top: pos.y,
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                backgroundColor: 'red',
+                transition: animating ? 'left 0.4s ease, top 0.4s ease' : 'none',
+                pointerEvents: 'none',
+                zIndex: 10,
+              }}
+            />
+          )
+        })}
       </div>
-      <button onClick={moveNext} disabled={animating}>
-        Move Circle {animating ? '(Animating...)' : ''}
+      <button onClick={animateRotation} disabled={animating || marbles.length === 0}>
+        Rotate Marbles {animating ? '(Animating...)' : ''}
       </button>
     </div>
   )
