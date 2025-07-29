@@ -17,8 +17,10 @@ export default function GameInfo({
   rotationAttempts,
   marbleCount,
 }: GameInfoProps) {
+  const canRotate = turnStep === 3 && !winner && rotationAttempts < MAX_ROTATION_ATTEMPTS
+
   return (
-    <>
+    <div className={styles.gameInfoPanel}>
       <div className={styles.gameInfo}>
         Current Player: {currentPlayer === 'black' ? 'Black' : 'White'}
       </div>
@@ -31,21 +33,15 @@ export default function GameInfo({
         ))}
       </div>
 
-      {winner ? (
-        <div
-          className={`${styles.winner} ${
-            styles[`winner${winner === 'draw' ? 'Draw' : winner === 'black' ? 'Black' : 'White'}`]
-          }`}
-        >
-          {winner === 'draw'
-            ? "It's a draw!"
-            : `${winner.charAt(0).toUpperCase() + winner.slice(1)} wins!`}
-        </div>
-      ) : marbleCount === BOARD_SIZE * BOARD_SIZE ? (
+      {marbleCount === BOARD_SIZE * BOARD_SIZE && !winner ? (
         <div className={styles.rotationInfo}>
           Rotation attempts left: {MAX_ROTATION_ATTEMPTS - rotationAttempts}
         </div>
       ) : null}
-    </>
+
+      <div className={`${styles.keyboardHint} ${canRotate ? styles.keyboardHintActive : ''}`}>
+        Press SPACE to rotate the board
+      </div>
+    </div>
   )
 }

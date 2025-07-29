@@ -82,3 +82,38 @@ export function checkWinners(marbles: Marble[]): { black: boolean; white: boolea
 
   return { black: blackWin, white: whiteWin }
 }
+
+export function getRotationDirection(cellIndex: number): string {
+  const outerIdx = outerOrbit.indexOf(cellIndex)
+  if (outerIdx !== -1) {
+    const nextIdx = (outerIdx - 1 + outerOrbit.length) % outerOrbit.length
+    const nextCell = outerOrbit[nextIdx]
+    return getDirectionBetweenCells(cellIndex, nextCell)
+  }
+
+  const innerIdx = innerOrbit.indexOf(cellIndex)
+  if (innerIdx !== -1) {
+    const nextIdx = (innerIdx - 1 + innerOrbit.length) % innerOrbit.length
+    const nextCell = innerOrbit[nextIdx]
+    return getDirectionBetweenCells(cellIndex, nextCell)
+  }
+
+  return 'none'
+}
+
+function getDirectionBetweenCells(from: number, to: number): string {
+  const fromRow = Math.floor(from / BOARD_SIZE)
+  const fromCol = from % BOARD_SIZE
+  const toRow = Math.floor(to / BOARD_SIZE)
+  const toCol = to % BOARD_SIZE
+
+  const deltaRow = toRow - fromRow
+  const deltaCol = toCol - fromCol
+
+  if (deltaRow === 0 && deltaCol === 1) return 'right'
+  if (deltaRow === 0 && deltaCol === -1) return 'left'
+  if (deltaRow === 1 && deltaCol === 0) return 'down'
+  if (deltaRow === -1 && deltaCol === 0) return 'up'
+
+  return 'none'
+}

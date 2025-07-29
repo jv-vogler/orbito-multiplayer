@@ -1,6 +1,5 @@
 import GameBoard from './components/GameBoard'
 import GameInfo from './components/GameInfo'
-import { MAX_ROTATION_ATTEMPTS } from './constants/game'
 import { useGameLogic } from './hooks/useGameLogic'
 import styles from './styles/Game.module.css'
 
@@ -18,37 +17,41 @@ export default function OrbitoFixedMarbles() {
     animateRotation,
   } = useGameLogic()
 
-  const canRotate = turnStep === 3 && !winner && rotationAttempts < MAX_ROTATION_ATTEMPTS
-
   return (
     <div className={styles.container}>
-      <GameBoard
-        marbles={marbles}
-        marblePositions={marblePositions}
-        turnStep={turnStep}
-        selectedEnemyMarbleId={selectedEnemyMarbleId}
-        animating={animating}
-        winner={winner}
-        onCellClick={handleCellClick}
-      />
+      {winner && (
+        <div
+          className={`${styles.winner} ${
+            styles[`winner${winner === 'draw' ? 'Draw' : winner === 'black' ? 'Black' : 'White'}`]
+          }`}
+        >
+          {winner === 'draw'
+            ? "It's a draw!"
+            : `${winner.charAt(0).toUpperCase() + winner.slice(1)} wins!`}
+        </div>
+      )}
 
-      <GameInfo
-        currentPlayer={currentPlayer}
-        turnStep={turnStep}
-        winner={winner}
-        rotationAttempts={rotationAttempts}
-        marbleCount={marbles.length}
-      />
+      <div className={styles.gameContent}>
+        <GameBoard
+          marbles={marbles}
+          marblePositions={marblePositions}
+          turnStep={turnStep}
+          selectedEnemyMarbleId={selectedEnemyMarbleId}
+          animating={animating}
+          winner={winner}
+          rotationAttempts={rotationAttempts}
+          onCellClick={handleCellClick}
+          onRotate={animateRotation}
+        />
 
-      <button
-        onClick={animateRotation}
-        disabled={animating || !canRotate}
-        className={`${styles.rotateButton} ${
-          canRotate ? styles.rotateButtonVisible : styles.rotateButtonHidden
-        }`}
-      >
-        Rotate Marbles {animating ? '(Animating...)' : ''}
-      </button>
+        <GameInfo
+          currentPlayer={currentPlayer}
+          turnStep={turnStep}
+          winner={winner}
+          rotationAttempts={rotationAttempts}
+          marbleCount={marbles.length}
+        />
+      </div>
     </div>
   )
 }

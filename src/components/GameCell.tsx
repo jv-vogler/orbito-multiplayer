@@ -1,5 +1,5 @@
 import { CELL_SIZE } from '../constants/game'
-import { getCellPosition, areCellsAdjacent } from '../utils/gameUtils'
+import { getCellPosition, areCellsAdjacent, getRotationDirection } from '../utils/gameUtils'
 import type { Marble, TurnStep, Winner } from '../types/game'
 import styles from '../styles/Game.module.css'
 
@@ -26,6 +26,7 @@ export default function GameCell({
   const hasMarble = marbles.some((m) => m.cell === cellIndex)
   const marble = marbles.find((m) => m.cell === cellIndex)
   const isSelectedEnemy = selectedEnemyMarbleId === marble?.id
+  const rotationDirection = getRotationDirection(cellIndex)
 
   const isClickable =
     !animating &&
@@ -58,6 +59,14 @@ export default function GameCell({
         width: CELL_SIZE,
         height: CELL_SIZE,
       }}
-    />
+    >
+      <div
+        className={`${styles.rotationIndicator} ${
+          styles[
+            `indicator${rotationDirection.charAt(0).toUpperCase() + rotationDirection.slice(1)}`
+          ]
+        }`}
+      />
+    </div>
   )
 }

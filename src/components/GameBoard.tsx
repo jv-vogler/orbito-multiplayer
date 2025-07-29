@@ -1,4 +1,4 @@
-import { BOARD_SIZE, CELL_SIZE } from '../constants/game'
+import { BOARD_SIZE, CELL_SIZE, MAX_ROTATION_ATTEMPTS } from '../constants/game'
 import { getCellPosition } from '../utils/gameUtils'
 import type { Marble, TurnStep, Winner, Position } from '../types/game'
 import GameCell from './GameCell'
@@ -12,7 +12,9 @@ interface GameBoardProps {
   selectedEnemyMarbleId: string | null
   animating: boolean
   winner: Winner
+  rotationAttempts: number
   onCellClick: (cell: number) => void
+  onRotate: () => void
 }
 
 export default function GameBoard({
@@ -22,8 +24,12 @@ export default function GameBoard({
   selectedEnemyMarbleId,
   animating,
   winner,
+  rotationAttempts,
   onCellClick,
+  onRotate,
 }: GameBoardProps) {
+  const canRotate = turnStep === 3 && !winner && rotationAttempts < MAX_ROTATION_ATTEMPTS
+
   return (
     <div
       className={styles.board}
@@ -58,6 +64,17 @@ export default function GameBoard({
           />
         )
       })}
+
+      <button
+        onClick={onRotate}
+        disabled={animating || !canRotate}
+        className={`${styles.rotateButton} ${
+          canRotate ? styles.rotateButtonVisible : styles.rotateButtonHidden
+        }`}
+        title={
+          animating ? 'Animating...' : canRotate ? 'Rotate Board (Space)' : 'Cannot rotate now'
+        }
+      />
     </div>
   )
 }
