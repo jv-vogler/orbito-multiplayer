@@ -1,10 +1,12 @@
-export enum GameScreen {
-  MENU = 'menu',
-  ROOM_LOBBY = 'room_lobby',
-  CREATE_ROOM = 'create_room',
-  JOIN_ROOM = 'join_room',
-  GAME = 'game',
-}
+export const GameScreen = {
+  MENU: 'menu',
+  ROOM_LOBBY: 'room_lobby',
+  CREATE_ROOM: 'create_room',
+  JOIN_ROOM: 'join_room',
+  GAME: 'game',
+} as const
+
+export type GameScreen = typeof GameScreen[keyof typeof GameScreen]
 
 export interface GameState {
   currentScreen: GameScreen
@@ -28,4 +30,5 @@ export interface Player {
   name: string
   color: 'black' | 'white' | null
   isHost: boolean
+  lastSeen?: Date
 }

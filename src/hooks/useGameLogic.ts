@@ -169,8 +169,25 @@ export function useGameLogic() {
     }
   }, [turnStep, marbles, currentPlayer, canMoveEnemyMarble])
 
+  const setGameState = useCallback((newState: {
+    marbles?: Marble[]
+    currentPlayer?: Player
+    turnStep?: TurnStep
+    selectedEnemyMarbleId?: string | null
+    winner?: Winner
+    rotationAttempts?: number
+    animating?: boolean
+  }) => {
+    if (newState.marbles !== undefined) setMarbles(newState.marbles)
+    if (newState.currentPlayer !== undefined) setCurrentPlayer(newState.currentPlayer)
+    if (newState.turnStep !== undefined) setTurnStep(newState.turnStep)
+    if (newState.selectedEnemyMarbleId !== undefined) setSelectedEnemyMarbleId(newState.selectedEnemyMarbleId)
+    if (newState.winner !== undefined) setWinner(newState.winner)
+    if (newState.rotationAttempts !== undefined) setRotationAttempts(newState.rotationAttempts)
+    if (newState.animating !== undefined) setAnimating(newState.animating)
+  }, [])
+
   const resetGame = () => {
-    // Reset all game state to initial values
     setMarbles([])
     setCurrentPlayer('black')
     setTurnStep(1)
@@ -179,7 +196,6 @@ export function useGameLogic() {
     setWinner(null)
     setRotationAttempts(0)
     setAnimating(false)
-    // Reset any other state variables you have
   }
 
   return {
@@ -194,5 +210,6 @@ export function useGameLogic() {
     handleCellClick,
     animateRotation,
     resetGame,
+    setGameState,
   }
 }

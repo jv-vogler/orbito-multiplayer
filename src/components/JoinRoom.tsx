@@ -2,28 +2,28 @@ import React, { useState } from 'react'
 import { GameScreen } from '../types/GameState'
 import './RoomComponents.css'
 
-interface CreateRoomProps {
+interface JoinRoomProps {
   onNavigate: (screen: GameScreen) => void
-  onCreateRoom: (roomName: string, playerName: string) => void
+  onJoinRoom: (roomId: string, playerName: string) => void
 }
 
-export const CreateRoom: React.FC<CreateRoomProps> = ({ onNavigate, onCreateRoom }) => {
-  const [roomName, setRoomName] = useState('')
+export const JoinRoom: React.FC<JoinRoomProps> = ({ onNavigate, onJoinRoom }) => {
+  const [roomId, setRoomId] = useState('')
   const [playerName, setPlayerName] = useState('')
-  const [isCreating, setIsCreating] = useState(false)
+  const [isJoining, setIsJoining] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (roomName.trim() && playerName.trim()) {
-      setIsCreating(true)
+    if (roomId.trim() && playerName.trim()) {
+      setIsJoining(true)
       setError(null)
       
       try {
-        await onCreateRoom(roomName.trim(), playerName.trim())
+        await onJoinRoom(roomId.trim(), playerName.trim())
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to create room')
-        setIsCreating(false)
+        setError(err instanceof Error ? err.message : 'Failed to join room')
+        setIsJoining(false)
       }
     }
   }
@@ -31,7 +31,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onNavigate, onCreateRoom
   return (
     <div className="room-screen">
       <div className="room-container">
-        <h2>Create Room</h2>
+        <h2>Join Room</h2>
 
         {error && (
           <div className="error-message">
@@ -50,37 +50,37 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onNavigate, onCreateRoom
               placeholder="Enter your name"
               maxLength={20}
               required
-              disabled={isCreating}
+              disabled={isJoining}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="roomName">Room Name</label>
+            <label htmlFor="roomId">Room ID</label>
             <input
-              id="roomName"
+              id="roomId"
               type="text"
-              value={roomName}
-              onChange={(e) => setRoomName(e.target.value)}
-              placeholder="Enter room name"
-              maxLength={30}
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+              placeholder="Enter room ID"
               required
-              disabled={isCreating}
+              disabled={isJoining}
             />
           </div>
 
           <div className="form-actions">
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="menu-button primary"
-              disabled={!roomName.trim() || !playerName.trim() || isCreating}
+              disabled={!roomId.trim() || !playerName.trim() || isJoining}
             >
-              {isCreating ? 'Creating...' : 'Create Room'}
+              {isJoining ? 'Joining...' : 'Join Room'}
             </button>
+
             <button
               type="button"
-              className="menu-button secondary"
               onClick={() => onNavigate(GameScreen.MENU)}
-              disabled={isCreating}
+              className="menu-button secondary"
+              disabled={isJoining}
             >
               Back
             </button>
@@ -88,7 +88,7 @@ export const CreateRoom: React.FC<CreateRoomProps> = ({ onNavigate, onCreateRoom
         </form>
 
         <div className="room-info">
-          <p>Create a room and share the Room ID with your friend!</p>
+          <p>Ask your friend for the Room ID to join their game!</p>
         </div>
       </div>
     </div>
