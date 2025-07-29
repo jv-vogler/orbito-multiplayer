@@ -37,16 +37,13 @@ export default function OrbitoFixedMarbles() {
   const [animating, setAnimating] = useState(false)
   const [currentPlayer, setCurrentPlayer] = useState<Player>('black')
 
-  // Turn step: 1 = move enemy marble (optional), 2 = place marble, 3 = rotate board
   const [turnStep, setTurnStep] = useState<1 | 2 | 3>(1)
-  // For step 1: selected enemy marble to move
   const [selectedEnemyMarbleId, setSelectedEnemyMarbleId] = useState<string | null>(null)
 
   const [marblePositions, setMarblePositions] = useState<{
     [id: string]: { x: number; y: number }
   }>({})
 
-  // Helpers
   function areCellsAdjacent(c1: number, c2: number) {
     const r1 = Math.floor(c1 / BOARD_SIZE)
     const c1Col = c1 % BOARD_SIZE
@@ -57,16 +54,12 @@ export default function OrbitoFixedMarbles() {
     )
   }
 
-  // Can current player move any enemy marble? Returns boolean
   function canMoveEnemyMarble() {
-    // Enemy marbles
     const enemyMarbles = marbles.filter((m) => m.player !== currentPlayer)
     if (enemyMarbles.length === 0) return false
     for (const m of enemyMarbles) {
-      // Check adjacent cells
       for (const delta of [-1, 1, -BOARD_SIZE, BOARD_SIZE]) {
         const adjCell = m.cell + delta
-        // Check bounds & adjacency (no wrap around)
         if (
           adjCell >= 0 &&
           adjCell < BOARD_SIZE * BOARD_SIZE &&
@@ -80,7 +73,6 @@ export default function OrbitoFixedMarbles() {
     return false
   }
 
-  // Automatically advance step 1 if no moves possible or first turn (empty board)
   if (turnStep === 1 && (marbles.length === 0 || !canMoveEnemyMarble())) {
     setTurnStep(2)
   }
@@ -89,11 +81,22 @@ export default function OrbitoFixedMarbles() {
     if (animating) return
 
     if (turnStep === 1) {
-      // Move enemy marble step
       if (!selectedEnemyMarbleId) {
-        // Select enemy marble only
         const marble = marbles.find((m) => m.cell === cell && m.player !== currentPlayer)
-        if (marble) setSelectedEnemyMarbleId(marble.id)
+        if (marble) {
+          setSelectedEnemyMarbleId(marble.id)
+          return
+        }
+        // Clicking empty cell skips step 1 AND places marble in that cell immediately
+        if (!marbles.find((m) => m.cell === cell)) {
+          // Place marble for current player
+          const id = generateId()
+          setMarbles((ms) => [...ms, { id, cell, player: currentPlayer }])
+          setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
+          // Advance to step 3 (rotate)
+          setTurnStep(3)
+          return
+        }
       } else {
         // Move selected enemy marble to adjacent empty cell
         if (
@@ -106,23 +109,21 @@ export default function OrbitoFixedMarbles() {
             [selectedEnemyMarbleId]: getCellPosition(cell),
           }))
           setSelectedEnemyMarbleId(null)
-          setTurnStep(2) // proceed to place marble
+          setTurnStep(2) // next place marble normally
         } else {
-          // Invalid move, deselect
-          setSelectedEnemyMarbleId(null)
+          setSelectedEnemyMarbleId(null) // invalid move, deselect
         }
       }
       return
     }
 
     if (turnStep === 2) {
-      // Place marble step
       if (marbles.find((m) => m.cell === cell)) return
       const id = generateId()
       setMarbles((ms) => [...ms, { id, cell, player: currentPlayer }])
       setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
-
-      setTurnStep(3) // next step rotate
+      setTurnStep(3)
+      return
     }
   }
 
@@ -189,7 +190,7 @@ export default function OrbitoFixedMarbles() {
               (turnStep === 2 && hasMarble)
                 ? 'default'
                 : 'pointer',
-            outline: isSelectedEnemy ? '3px solid yellow' : undefined,
+            boxShadow: isSelectedEnemy ? '0 0 0 3px yellow' : undefined,
           }
 
           // When step 1 & selected enemy, allow clicks on adjacent empty cells
@@ -226,15 +227,39 @@ export default function OrbitoFixedMarbles() {
           )
         })}
       </div>
+
       <div style={{ marginBottom: 10, fontWeight: 'bold' }}>
         Current Player: {currentPlayer === 'black' ? 'Black' : 'White'}
       </div>
-      <div style={{ marginBottom: 20, fontWeight: 'bold' }}>{stepTextMap[turnStep]}</div>
-      {turnStep === 3 && (
-        <button onClick={animateRotation} disabled={animating}>
-          Rotate Marbles {animating ? '(Animating...)' : ''}
-        </button>
-      )}
+
+      {/* Show all steps with highlight */}
+      <div style={{ marginBottom: 20, fontWeight: 'bold' }}>
+        {[1, 2, 3].map((step) => (
+          <div
+            key={step}
+            style={{
+              color: turnStep === step ? 'yellow' : 'white',
+              fontWeight: turnStep === step ? 'bold' : 'normal',
+              marginBottom: 4,
+              textShadow: turnStep === step ? '0 0 5px yellow' : undefined,
+            }}
+          >
+            {stepTextMap[step]}
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={animateRotation}
+        disabled={animating || turnStep !== 3}
+        style={{
+          visibility: turnStep === 3 ? 'visible' : 'hidden',
+          height: '40px', // keep consistent height to reserve space
+          marginTop: '10px',
+        }}
+      >
+        Rotate Marbles {animating ? '(Animating...)' : ''}
+      </button>
     </div>
   )
 }
