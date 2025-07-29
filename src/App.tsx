@@ -5,12 +5,12 @@ import { MainMenu } from './components/MainMenu'
 import { CreateRoom } from './components/CreateRoom'
 import { JoinRoom } from './components/JoinRoom'
 import { RoomLobby } from './components/RoomLobby'
-import { useGameLogic } from './hooks/useGameLogic'
-import { useOnlineGame } from './hooks/useOnlineGame'
+import { useOfflineGameLogic } from './hooks/useOfflineGameLogic'
+import { useOnlineGameLogic } from './hooks/useOnlineGameLogic'
 import { useGameState } from './hooks/useGameState'
 import { createRoom, joinRoom } from './services/roomService'
 import styles from './styles/Game.module.css'
-import { GameScreen, type Room } from './types/GameState'
+import { GameScreen } from './types/GameState'
 
 export default function OrbitoFixedMarbles() {
   const {
@@ -23,11 +23,9 @@ export default function OrbitoFixedMarbles() {
     clearRoomData,
   } = useGameState()
 
-  // Use different hooks based on game mode
-  const offlineGame = useGameLogic()
-  const onlineGame = useOnlineGame(gameState.roomId, gameState.playerId)
+  const offlineGame = useOfflineGameLogic()
+  const onlineGame = useOnlineGameLogic(currentRoom?.id, currentPlayer?.id)
 
-  // Select the appropriate game instance
   const game = gameState.isOfflineMode ? offlineGame : onlineGame
 
   const handleNavigateToGame = (isOffline: boolean) => {
@@ -36,7 +34,6 @@ export default function OrbitoFixedMarbles() {
     navigateToScreen(GameScreen.GAME)
   }
 
-  // TODO: Uncomment when components are created
   const handleCreateRoom = async (roomName: string, playerName: string) => {
     try {
       const { room, player } = await createRoom(roomName, playerName)
@@ -61,9 +58,12 @@ export default function OrbitoFixedMarbles() {
     }
   }
 
-  const handleGameStart = (_room: Room) => {
-    // Initialize online game state
-    onlineGame.initializeOnlineGame()
+  const handleGameStart = () => {
+    if (gameState.isOfflineMode) {
+      offlineGame.resetGame()
+    } else {
+      onlineGame.resetGame()
+    }
     navigateToScreen(GameScreen.GAME)
   }
 
@@ -73,7 +73,9 @@ export default function OrbitoFixedMarbles() {
     navigateToScreen(GameScreen.MENU)
   }
 
-  // Menu Screen
+  /**
+   * Menu Screen
+   */
   if (gameState.currentScreen === GameScreen.MENU) {
     return (
       <MainMenu
@@ -92,17 +94,23 @@ export default function OrbitoFixedMarbles() {
     )
   }
 
-  // Create Room Screen
+  /**
+   * Create Room Screen
+   */
   if (gameState.currentScreen === GameScreen.CREATE_ROOM) {
     return <CreateRoom onNavigate={navigateToScreen} onCreateRoom={handleCreateRoom} />
   }
 
-  // Join Room Screen
+  /**
+   * Join Room Screen
+   */
   if (gameState.currentScreen === GameScreen.JOIN_ROOM) {
     return <JoinRoom onNavigate={navigateToScreen} onJoinRoom={handleJoinRoom} />
   }
 
-  // Room Lobby Screen
+  /**
+   * Room Lobby Screen
+   */
   if (gameState.currentScreen === GameScreen.ROOM_LOBBY && currentRoom && currentPlayer) {
     return (
       <RoomLobby
@@ -115,7 +123,9 @@ export default function OrbitoFixedMarbles() {
     )
   }
 
-  // Game Screen
+  /**
+   * Game Screen
+   */
   return (
     <GameContainer onNavigate={navigateToScreen}>
       <div className={styles.container}>
@@ -155,14 +165,8 @@ export default function OrbitoFixedMarbles() {
             rotationAttempts={game.rotationAttempts}
             marbleCount={game.marbles.length}
             isOnline={!gameState.isOfflineMode}
-            playerColor={
-              !gameState.isOfflineMode && 'playerColor' in game
-                ? (game.playerColor as 'black' | 'white' | null)
-                : null
-            }
-            isMyTurn={
-              !gameState.isOfflineMode && 'isMyTurn' in game ? (game.isMyTurn as boolean) : true
-            }
+            playerColor={gameState.isOfflineMode ? null : onlineGame.playerColor}
+            isMyTurn={gameState.isOfflineMode ? true : onlineGame.isMyTurn}
           />
         </div>
       </div>

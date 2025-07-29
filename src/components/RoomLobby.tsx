@@ -26,7 +26,7 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
     const unsubscribe = subscribeToRoom(room.id, (updatedRoom) => {
       if (updatedRoom) {
         setRoom(updatedRoom)
-        
+
         // If game started, navigate to game screen
         if (updatedRoom.status === 'playing') {
           onGameStart(updatedRoom)
@@ -68,7 +68,7 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
         rotationAttempts: 0,
         animating: false,
       }
-      
+
       await startGame(room.id, initialGameState)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start game')
@@ -100,24 +100,18 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
           <h2>{room.name}</h2>
           <div className="room-id">
             <span>Room ID: {room.id}</span>
-            <button 
-              onClick={copyRoomId}
-              className="copy-button"
-              title="Copy room ID"
-            >
+            <button onClick={copyRoomId} className="copy-button" title="Copy room ID">
               📋
             </button>
           </div>
         </div>
 
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+        {error && <div className="error-message">{error}</div>}
 
         <div className="players-section">
-          <h3>Players ({room.players.length}/{room.maxPlayers})</h3>
+          <h3>
+            Players ({room.players.length}/{room.maxPlayers})
+          </h3>
           <div className="players-list">
             {room.players.map((player) => (
               <div key={player.id} className="player-item">
@@ -127,13 +121,11 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
                   {player.id === currentPlayer.id && <span className="you-badge">You</span>}
                 </div>
                 {player.color && (
-                  <div className={`player-color ${player.color}`}>
-                    {player.color}
-                  </div>
+                  <div className={`player-color ${player.color}`}>{player.color}</div>
                 )}
               </div>
             ))}
-            
+
             {room.players.length < room.maxPlayers && (
               <div className="waiting-slot">
                 <span>Waiting for player...</span>
@@ -144,32 +136,20 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
 
         <div className="room-actions">
           {canStartGame && (
-            <button
-              onClick={handleStartGame}
-              className="menu-button primary"
-              disabled={isStarting}
-            >
+            <button onClick={handleStartGame} className="menu-button primary" disabled={isStarting}>
               {isStarting ? 'Starting...' : 'Start Game'}
             </button>
           )}
 
           {!currentPlayer.isHost && room.players.length < 2 && (
-            <div className="waiting-message">
-              Waiting for host to start the game...
-            </div>
+            <div className="waiting-message">Waiting for host to start the game...</div>
           )}
 
-          <button
-            onClick={handleLeaveRoom}
-            className="menu-button secondary"
-          >
+          <button onClick={handleLeaveRoom} className="menu-button secondary">
             Leave Room
           </button>
 
-          <button
-            onClick={() => onNavigate(GameScreen.MENU)}
-            className="menu-button tertiary"
-          >
+          <button onClick={() => onNavigate(GameScreen.MENU)} className="menu-button tertiary">
             Back to Menu
           </button>
         </div>

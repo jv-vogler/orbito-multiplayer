@@ -39,9 +39,7 @@ export default function GameInfo({
       )}
 
       {isOnline && !isMyTurn && (
-        <div className={styles.waitingMessage}>
-          Waiting for opponent's move...
-        </div>
+        <div className={styles.waitingMessage}>Waiting for opponent's move...</div>
       )}
 
       <div className={styles.steps}>
@@ -58,7 +56,11 @@ export default function GameInfo({
         </div>
       ) : null}
 
-      <div className={`${styles.keyboardHint} ${canRotate && isMyTurn ? styles.keyboardHintActive : ''}`}>
+      <div
+        className={`${styles.keyboardHint} ${
+          canRotate && isMyTurn ? styles.keyboardHintActive : ''
+        }`}
+      >
         Press SPACE to rotate the board
       </div>
     </div>

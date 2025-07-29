@@ -9,7 +9,7 @@ import {
 } from '../utils/gameUtils'
 import type { Marble, Player, TurnStep, Winner, Position } from '../types/game'
 
-export function useGameLogic() {
+export function useOfflineGameLogic() {
   const [marbles, setMarbles] = useState<Marble[]>([])
   const [animating, setAnimating] = useState(false)
   const [currentPlayer, setCurrentPlayer] = useState<Player>('black')
@@ -149,11 +149,10 @@ export function useGameLogic() {
     }, 400)
   }, [animating, turnStep, winner, marbles, updateGameState])
 
-  // Add keyboard event listener for spacebar rotation
   useEffect(() => {
     function handleKeyPress(event: KeyboardEvent) {
       if (event.code === 'Space' || event.key === ' ') {
-        event.preventDefault() // Prevent page scroll
+        event.preventDefault()
         animateRotation()
       }
     }
@@ -162,30 +161,33 @@ export function useGameLogic() {
     return () => window.removeEventListener('keydown', handleKeyPress)
   }, [animateRotation])
 
-  // Auto-skip step 1 if no enemy marbles can be moved
   useEffect(() => {
     if (turnStep === 1 && (marbles.length === 0 || !canMoveEnemyMarble())) {
       setTurnStep(2)
     }
   }, [turnStep, marbles, currentPlayer, canMoveEnemyMarble])
 
-  const setGameState = useCallback((newState: {
-    marbles?: Marble[]
-    currentPlayer?: Player
-    turnStep?: TurnStep
-    selectedEnemyMarbleId?: string | null
-    winner?: Winner
-    rotationAttempts?: number
-    animating?: boolean
-  }) => {
-    if (newState.marbles !== undefined) setMarbles(newState.marbles)
-    if (newState.currentPlayer !== undefined) setCurrentPlayer(newState.currentPlayer)
-    if (newState.turnStep !== undefined) setTurnStep(newState.turnStep)
-    if (newState.selectedEnemyMarbleId !== undefined) setSelectedEnemyMarbleId(newState.selectedEnemyMarbleId)
-    if (newState.winner !== undefined) setWinner(newState.winner)
-    if (newState.rotationAttempts !== undefined) setRotationAttempts(newState.rotationAttempts)
-    if (newState.animating !== undefined) setAnimating(newState.animating)
-  }, [])
+  const setGameState = useCallback(
+    (newState: {
+      marbles?: Marble[]
+      currentPlayer?: Player
+      turnStep?: TurnStep
+      selectedEnemyMarbleId?: string | null
+      winner?: Winner
+      rotationAttempts?: number
+      animating?: boolean
+    }) => {
+      if (newState.marbles !== undefined) setMarbles(newState.marbles)
+      if (newState.currentPlayer !== undefined) setCurrentPlayer(newState.currentPlayer)
+      if (newState.turnStep !== undefined) setTurnStep(newState.turnStep)
+      if (newState.selectedEnemyMarbleId !== undefined)
+        setSelectedEnemyMarbleId(newState.selectedEnemyMarbleId)
+      if (newState.winner !== undefined) setWinner(newState.winner)
+      if (newState.rotationAttempts !== undefined) setRotationAttempts(newState.rotationAttempts)
+      if (newState.animating !== undefined) setAnimating(newState.animating)
+    },
+    []
+  )
 
   const resetGame = () => {
     setMarbles([])

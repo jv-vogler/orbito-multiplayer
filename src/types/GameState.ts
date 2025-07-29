@@ -6,7 +6,7 @@ export const GameScreen = {
   GAME: 'game',
 } as const
 
-export type GameScreen = typeof GameScreen[keyof typeof GameScreen]
+export type GameScreen = (typeof GameScreen)[keyof typeof GameScreen]
 
 export interface GameState {
   currentScreen: GameScreen

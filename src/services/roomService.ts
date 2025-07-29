@@ -23,9 +23,12 @@ export interface FirestorePlayer extends Omit<Player, 'lastSeen'> {
 }
 
 // Room management functions
-export async function createRoom(roomName: string, hostPlayerName: string): Promise<{ room: Room; player: Player }> {
+export async function createRoom(
+  roomName: string,
+  hostPlayerName: string
+): Promise<{ room: Room; player: Player }> {
   const playerId = generatePlayerId()
-  
+
   const player: FirestorePlayer = {
     id: playerId,
     name: hostPlayerName,
@@ -45,7 +48,7 @@ export async function createRoom(roomName: string, hostPlayerName: string): Prom
 
   try {
     const docRef = await addDoc(collection(db, 'rooms'), roomData)
-    
+
     const room: Room = {
       id: docRef.id,
       name: roomName,
@@ -63,9 +66,12 @@ export async function createRoom(roomName: string, hostPlayerName: string): Prom
   }
 }
 
-export async function joinRoom(roomId: string, playerName: string): Promise<{ room: Room; player: Player }> {
+export async function joinRoom(
+  roomId: string,
+  playerName: string
+): Promise<{ room: Room; player: Player }> {
   const playerId = generatePlayerId()
-  
+
   try {
     const roomRef = doc(db, 'rooms', roomId)
     const roomSnap = await getDoc(roomRef)
@@ -75,7 +81,7 @@ export async function joinRoom(roomId: string, playerName: string): Promise<{ ro
     }
 
     const roomData = roomSnap.data() as FirestoreRoom
-    
+
     if (roomData.players.length >= roomData.maxPlayers) {
       throw new Error('Room is full')
     }
@@ -93,7 +99,7 @@ export async function joinRoom(roomId: string, playerName: string): Promise<{ ro
     }
 
     const updatedPlayers = [...roomData.players, newPlayer]
-    
+
     await updateDoc(roomRef, {
       players: updatedPlayers,
     })
@@ -101,7 +107,7 @@ export async function joinRoom(roomId: string, playerName: string): Promise<{ ro
     const room: Room = {
       id: roomId,
       name: roomData.name,
-      players: updatedPlayers.map(p => ({ ...p, lastSeen: new Date() })),
+      players: updatedPlayers.map((p) => ({ ...p, lastSeen: new Date() })),
       maxPlayers: roomData.maxPlayers,
       status: roomData.status,
       createdBy: roomData.createdBy,
@@ -125,7 +131,7 @@ export async function leaveRoom(roomId: string, playerId: string): Promise<void>
     }
 
     const roomData = roomSnap.data() as FirestoreRoom
-    const updatedPlayers = roomData.players.filter(p => p.id !== playerId)
+    const updatedPlayers = roomData.players.filter((p) => p.id !== playerId)
 
     if (updatedPlayers.length === 0) {
       // No players left, delete the room
@@ -154,7 +160,7 @@ export async function leaveRoom(roomId: string, playerId: string): Promise<void>
 export async function startGame(roomId: string, gameState: GamePlayState): Promise<void> {
   try {
     const roomRef = doc(db, 'rooms', roomId)
-    
+
     // Assign colors to players
     const roomSnap = await getDoc(roomRef)
     if (!roomSnap.exists()) {
@@ -164,7 +170,7 @@ export async function startGame(roomId: string, gameState: GamePlayState): Promi
     const roomData = roomSnap.data() as FirestoreRoom
     const updatedPlayers = roomData.players.map((player, index) => ({
       ...player,
-      color: index === 0 ? 'black' as const : 'white' as const,
+      color: index === 0 ? ('black' as const) : ('white' as const),
     }))
 
     await updateDoc(roomRef, {
@@ -190,32 +196,33 @@ export async function updateGameState(roomId: string, gameState: GamePlayState):
   }
 }
 
-export function subscribeToRoom(
-  roomId: string,
-  callback: (room: Room | null) => void
-): () => void {
+export function subscribeToRoom(roomId: string, callback: (room: Room | null) => void): () => void {
   const roomRef = doc(db, 'rooms', roomId)
-  
-  return onSnapshot(roomRef, (doc) => {
-    if (doc.exists()) {
-      const data = doc.data() as FirestoreRoom
-      const room: Room = {
-        id: doc.id,
-        name: data.name,
-        players: data.players.map(p => ({ ...p, lastSeen: p.lastSeen.toDate() })),
-        maxPlayers: data.maxPlayers,
-        status: data.status,
-        createdBy: data.createdBy,
-        createdAt: data.createdAt.toDate(),
+
+  return onSnapshot(
+    roomRef,
+    (doc) => {
+      if (doc.exists()) {
+        const data = doc.data() as FirestoreRoom
+        const room: Room = {
+          id: doc.id,
+          name: data.name,
+          players: data.players.map((p) => ({ ...p, lastSeen: p.lastSeen.toDate() })),
+          maxPlayers: data.maxPlayers,
+          status: data.status,
+          createdBy: data.createdBy,
+          createdAt: data.createdAt.toDate(),
+        }
+        callback(room)
+      } else {
+        callback(null)
       }
-      callback(room)
-    } else {
+    },
+    (error) => {
+      console.error('Error listening to room:', error)
       callback(null)
     }
-  }, (error) => {
-    console.error('Error listening to room:', error)
-    callback(null)
-  })
+  )
 }
 
 export function subscribeToGameState(
@@ -223,18 +230,79 @@ export function subscribeToGameState(
   callback: (gameState: GamePlayState | null) => void
 ): () => void {
   const roomRef = doc(db, 'rooms', roomId)
-  
-  return onSnapshot(roomRef, (doc) => {
-    if (doc.exists()) {
-      const data = doc.data() as FirestoreRoom
-      callback(data.gameState || null)
-    } else {
+
+  return onSnapshot(
+    roomRef,
+    (doc) => {
+      if (doc.exists()) {
+        const data = doc.data() as FirestoreRoom
+        callback(data.gameState || null)
+      } else {
+        callback(null)
+      }
+    },
+    (error) => {
+      console.error('Error listening to game state:', error)
       callback(null)
     }
-  }, (error) => {
-    console.error('Error listening to game state:', error)
-    callback(null)
-  })
+  )
+}
+
+// WebRTC Signaling Support
+export interface SignalingMessage {
+  type: 'offer' | 'answer' | 'ice-candidate'
+  fromPlayer: string
+  toPlayer: string
+  data: RTCSessionDescriptionInit | RTCIceCandidateInit
+  timestamp: Timestamp
+}
+
+// Send WebRTC signaling message
+export async function sendSignalingMessage(
+  roomId: string,
+  message: Omit<SignalingMessage, 'timestamp'>
+): Promise<void> {
+  try {
+    const signalingRef = collection(db, 'rooms', roomId, 'signaling')
+    await addDoc(signalingRef, {
+      ...message,
+      timestamp: Timestamp.now(),
+    })
+  } catch (error) {
+    console.error('Error sending signaling message:', error)
+    throw new Error('Failed to send signaling message')
+  }
+}
+
+// Subscribe to WebRTC signaling messages
+export function subscribeToSignaling(
+  roomId: string,
+  playerId: string,
+  callback: (message: SignalingMessage) => void
+): () => void {
+  const signalingRef = collection(db, 'rooms', roomId, 'signaling')
+
+  return onSnapshot(
+    signalingRef,
+    (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data() as SignalingMessage
+          // Only process messages addressed to this player
+          if (data.toPlayer === playerId) {
+            callback(data)
+            // Delete the message after processing to keep the collection clean
+            deleteDoc(change.doc.ref).catch((error) => {
+              console.error('Error deleting signaling message:', error)
+            })
+          }
+        }
+      })
+    },
+    (error) => {
+      console.error('Error listening to signaling:', error)
+    }
+  )
 }
 
 function generatePlayerId(): string {

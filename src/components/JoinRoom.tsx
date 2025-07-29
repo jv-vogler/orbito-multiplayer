@@ -18,7 +18,7 @@ export const JoinRoom: React.FC<JoinRoomProps> = ({ onNavigate, onJoinRoom }) =>
     if (roomId.trim() && playerName.trim()) {
       setIsJoining(true)
       setError(null)
-      
+
       try {
         await onJoinRoom(roomId.trim(), playerName.trim())
       } catch (err) {
@@ -33,11 +33,7 @@ export const JoinRoom: React.FC<JoinRoomProps> = ({ onNavigate, onJoinRoom }) =>
       <div className="room-container">
         <h2>Join Room</h2>
 
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+        {error && <div className="error-message">{error}</div>}
 
         <form onSubmit={handleSubmit} className="room-form">
           <div className="form-group">
