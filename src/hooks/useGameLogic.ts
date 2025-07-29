@@ -169,6 +169,19 @@ export function useGameLogic() {
     }
   }, [turnStep, marbles, currentPlayer, canMoveEnemyMarble])
 
+  const resetGame = () => {
+    // Reset all game state to initial values
+    setMarbles([])
+    setCurrentPlayer('black')
+    setTurnStep(1)
+    setSelectedEnemyMarbleId(null)
+    setMarblePositions({})
+    setWinner(null)
+    setRotationAttempts(0)
+    setAnimating(false)
+    // Reset any other state variables you have
+  }
+
   return {
     marbles,
     animating,
@@ -180,5 +193,6 @@ export function useGameLogic() {
     rotationAttempts,
     handleCellClick,
     animateRotation,
+    resetGame,
   }
 }
