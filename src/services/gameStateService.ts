@@ -30,10 +30,8 @@ export interface OnlineGameState {
   marbles: GameState['marbles']
   currentPlayer: GameState['currentPlayer']
   turnStep: GameState['turnStep']
-  selectedEnemyMarbleId: GameState['selectedEnemyMarbleId']
   winner: GameState['winner']
   rotationAttempts: GameState['rotationAttempts']
-  animating: GameState['animating']
 }
 
 export interface PlayerColorAssignment {

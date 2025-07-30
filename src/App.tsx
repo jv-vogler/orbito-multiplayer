@@ -176,8 +176,6 @@ export default function OrbitoFixedMarbles() {
             rotationAttempts={game.rotationAttempts}
             marbleCount={game.marbles.length}
             isOnline={!gameState.isOfflineMode}
-            playerColor={gameState.isOfflineMode ? null : onlineGame.playerColor}
-            isMyTurn={gameState.isOfflineMode ? true : onlineGame.isMyTurn}
           />
         </div>
       </div>
