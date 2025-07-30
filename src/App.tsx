@@ -11,6 +11,7 @@ import { useGameState } from './hooks/useGameState'
 import { createRoom, joinRoom } from './services/roomService'
 import styles from './styles/Game.module.css'
 import { GameScreen } from './types/GameState'
+import { useEffect } from 'react'
 
 export default function OrbitoFixedMarbles() {
   const {
@@ -24,9 +25,17 @@ export default function OrbitoFixedMarbles() {
   } = useGameState()
 
   const offlineGame = useOfflineGameLogic()
-  const onlineGame = useOnlineGameLogic(currentRoom?.id, currentPlayer?.id)
+  const onlineGame = useOnlineGameLogic(currentRoom?.id, currentPlayer?.id, {
+    isGameScreen: gameState.currentScreen === GameScreen.GAME,
+  })
 
   const game = gameState.isOfflineMode ? offlineGame : onlineGame
+
+  useEffect(() => {
+    if (currentPlayer && !gameState.isOfflineMode) {
+      onlineGame.setHostStatus(currentPlayer.isHost)
+    }
+  }, [currentPlayer, gameState.isOfflineMode, onlineGame])
 
   const handleNavigateToGame = (isOffline: boolean) => {
     setOfflineMode(isOffline)
@@ -62,7 +71,9 @@ export default function OrbitoFixedMarbles() {
     if (gameState.isOfflineMode) {
       offlineGame.resetGame()
     } else {
-      onlineGame.resetGame()
+      if (currentPlayer?.isHost) {
+        onlineGame.initializeOnlineGame()
+      }
     }
     navigateToScreen(GameScreen.GAME)
   }

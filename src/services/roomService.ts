@@ -161,21 +161,13 @@ export async function startGame(roomId: string, gameState: GamePlayState): Promi
   try {
     const roomRef = doc(db, 'rooms', roomId)
 
-    // Assign colors to players
     const roomSnap = await getDoc(roomRef)
     if (!roomSnap.exists()) {
       throw new Error('Room not found')
     }
 
-    const roomData = roomSnap.data() as FirestoreRoom
-    const updatedPlayers = roomData.players.map((player, index) => ({
-      ...player,
-      color: index === 0 ? ('black' as const) : ('white' as const),
-    }))
-
     await updateDoc(roomRef, {
       status: 'playing',
-      players: updatedPlayers,
       gameState: gameState,
     })
   } catch (error) {

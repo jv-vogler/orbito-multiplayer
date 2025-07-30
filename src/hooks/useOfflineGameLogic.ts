@@ -56,98 +56,135 @@ export function useOfflineGameLogic() {
     [rotationAttempts]
   )
 
-  function handleCellClick(cell: number) {
-    if (animating || winner) return
-
-    if (turnStep === 1) {
-      if (!selectedEnemyMarbleId) {
-        const marble = marbles.find((m) => m.cell === cell && m.player !== currentPlayer)
-        if (marble) {
-          setSelectedEnemyMarbleId(marble.id)
-          return
-        }
-        if (!marbles.find((m) => m.cell === cell)) {
-          const id = generateId()
-          const newMarbles = [...marbles, { id, cell, player: currentPlayer }]
-          setMarbles(newMarbles)
-          setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
-          updateGameState(newMarbles)
-          setTurnStep(3)
-          return
-        }
-      } else {
-        if (
-          !marbles.find((m) => m.cell === cell) &&
-          areCellsAdjacent(cell, marbles.find((m) => m.id === selectedEnemyMarbleId)!.cell)
-        ) {
-          const newMarbles = marbles.map((m) =>
-            m.id === selectedEnemyMarbleId ? { ...m, cell } : m
-          )
-          setMarbles(newMarbles)
-          setMarblePositions((pos) => ({
-            ...pos,
-            [selectedEnemyMarbleId]: getCellPosition(cell),
-          }))
-          setSelectedEnemyMarbleId(null)
-          updateGameState(newMarbles)
-          setTurnStep(2)
-        } else {
-          setSelectedEnemyMarbleId(null)
-        }
+  function handleCellClick(cell: number, callback?: () => void): Promise<void> {
+    return new Promise((resolve) => {
+      if (animating || winner) {
+        resolve()
+        callback?.()
+        return
       }
-      return
-    }
 
-    if (turnStep === 2) {
-      if (marbles.find((m) => m.cell === cell)) return
-      const id = generateId()
-      const newMarbles = [...marbles, { id, cell, player: currentPlayer }]
-      setMarbles(newMarbles)
-      setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
-      updateGameState(newMarbles)
-      setTurnStep(3)
-      return
-    }
+      if (turnStep === 1) {
+        if (!selectedEnemyMarbleId) {
+          const marble = marbles.find((m) => m.cell === cell && m.player !== currentPlayer)
+          if (marble) {
+            setSelectedEnemyMarbleId(marble.id)
+            resolve()
+            callback?.()
+            return
+          }
+          if (!marbles.find((m) => m.cell === cell)) {
+            const id = generateId()
+            const newMarbles = [...marbles, { id, cell, player: currentPlayer }]
+            setMarbles(newMarbles)
+            setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
+            updateGameState(newMarbles)
+            setTurnStep(3)
+            resolve()
+            callback?.()
+            return
+          }
+        } else {
+          if (
+            !marbles.find((m) => m.cell === cell) &&
+            areCellsAdjacent(cell, marbles.find((m) => m.id === selectedEnemyMarbleId)!.cell)
+          ) {
+            const newMarbles = marbles.map((m) =>
+              m.id === selectedEnemyMarbleId ? { ...m, cell } : m
+            )
+            setMarbles(newMarbles)
+            setMarblePositions((pos) => ({
+              ...pos,
+              [selectedEnemyMarbleId]: getCellPosition(cell),
+            }))
+            setSelectedEnemyMarbleId(null)
+            updateGameState(newMarbles)
+            setTurnStep(2)
+          } else {
+            setSelectedEnemyMarbleId(null)
+          }
+        }
+        resolve()
+        callback?.()
+        return
+      }
+
+      if (turnStep === 2) {
+        if (marbles.find((m) => m.cell === cell)) {
+          resolve()
+          callback?.()
+          return
+        }
+        const id = generateId()
+        const newMarbles = [...marbles, { id, cell, player: currentPlayer }]
+        setMarbles(newMarbles)
+        setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
+        updateGameState(newMarbles)
+        setTurnStep(3)
+        resolve()
+        callback?.()
+        return
+      }
+
+      resolve()
+      callback?.()
+    })
   }
 
-  const animateRotation = useCallback(() => {
-    if (animating || turnStep !== 3 || winner) return
+  const animateRotation = useCallback(
+    (callback?: () => void): Promise<void> => {
+      return new Promise((resolve) => {
+        if (animating || turnStep !== 3 || winner) {
+          resolve()
+          callback?.()
+          return
+        }
 
-    setAnimating(true)
+        setAnimating(true)
 
-    const newPositions: typeof marblePositions = {}
-    marbles.forEach(({ id, cell }) => {
-      const nextCell = getNextCell(cell)
-      newPositions[id] = getCellPosition(nextCell)
-    })
-    setMarblePositions(newPositions)
+        const newPositions: typeof marblePositions = {}
+        marbles.forEach(({ id, cell }) => {
+          const nextCell = getNextCell(cell)
+          newPositions[id] = getCellPosition(nextCell)
+        })
+        setMarblePositions(newPositions)
 
-    setTimeout(() => {
-      const newMarbles = marbles.map(({ id, cell, player }) => ({
-        id,
-        cell: getNextCell(cell),
-        player,
-      }))
-      setMarbles(newMarbles)
-      setAnimating(false)
-      setSelectedEnemyMarbleId(null)
+        setTimeout(() => {
+          const newMarbles = marbles.map(({ id, cell, player }) => ({
+            id,
+            cell: getNextCell(cell),
+            player,
+          }))
+          setMarbles(newMarbles)
+          setAnimating(false)
+          setSelectedEnemyMarbleId(null)
 
-      updateGameState(newMarbles)
+          updateGameState(newMarbles)
 
-      const winners = checkWinners(newMarbles)
-      const hasWinner = winners.black || winners.white
+          const winners = checkWinners(newMarbles)
+          const hasWinner = winners.black || winners.white
 
-      if (hasWinner || (winners.black && winners.white)) return
+          if (hasWinner || (winners.black && winners.white)) {
+            resolve()
+            callback?.()
+            return
+          }
 
-      if (newMarbles.length === BOARD_SIZE * BOARD_SIZE) {
-        setRotationAttempts((ra) => ra + 1)
-      } else {
-        setRotationAttempts(0)
-        setCurrentPlayer((p) => (p === 'black' ? 'white' : 'black'))
-        setTurnStep(1)
-      }
-    }, 400)
-  }, [animating, turnStep, winner, marbles, updateGameState])
+          if (newMarbles.length === BOARD_SIZE * BOARD_SIZE) {
+            setRotationAttempts((ra) => ra + 1)
+          } else {
+            setRotationAttempts(0)
+            setCurrentPlayer((p) => (p === 'black' ? 'white' : 'black'))
+            setTurnStep(1)
+          }
+
+          resolve()
+          callback?.()
+        }, 400)
+      })
+    },
+    [animating, turnStep, winner, marbles, updateGameState]
+  )
 
   useEffect(() => {
     function handleKeyPress(event: KeyboardEvent) {
