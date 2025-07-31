@@ -58,7 +58,6 @@ export const RoomLobby: React.FC<RoomLobbyProps> = ({
     setError(null)
 
     try {
-      // Create initial game state
       const initialGameState = {
         marbles: [],
         currentPlayer: 'black' as const,

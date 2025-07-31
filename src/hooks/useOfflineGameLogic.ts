@@ -12,7 +12,7 @@ import type { Marble, Player, TurnStep, Winner, Position } from '../types/game'
 export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
   const [marbles, setMarbles] = useState<Marble[]>([])
   const [animating, setAnimating] = useState(false)
-  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(startingPlayer)
+  const [currentTurnColor, setCurrentTurnColor] = useState<Player | null>(startingPlayer)
   const [turnStep, setTurnStep] = useState<TurnStep>(1)
   const [selectedEnemyMarbleId, setSelectedEnemyMarbleId] = useState<string | null>(null)
   const [marblePositions, setMarblePositions] = useState<{ [id: string]: Position }>({})
@@ -20,7 +20,7 @@ export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
   const [rotationAttempts, setRotationAttempts] = useState(0)
 
   const canMoveEnemyMarble = useCallback(() => {
-    const enemyMarbles = marbles.filter((m) => m.player !== currentPlayer)
+    const enemyMarbles = marbles.filter((m) => m.player !== currentTurnColor)
     if (enemyMarbles.length === 0) return false
     for (const m of enemyMarbles) {
       for (const delta of [-1, 1, -BOARD_SIZE, BOARD_SIZE]) {
@@ -36,7 +36,7 @@ export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
       }
     }
     return false
-  }, [marbles, currentPlayer])
+  }, [marbles, currentTurnColor])
 
   const updateGameState = useCallback(
     (newMarbles: Marble[]) => {
@@ -58,7 +58,7 @@ export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
 
   function handleCellClick(cell: number, callback?: () => void): Promise<void> {
     return new Promise((resolve) => {
-      if (currentPlayer === null) return
+      if (currentTurnColor === null) return
 
       if (animating || winner) {
         resolve()
@@ -68,7 +68,7 @@ export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
 
       if (turnStep === 1) {
         if (!selectedEnemyMarbleId) {
-          const marble = marbles.find((m) => m.cell === cell && m.player !== currentPlayer)
+          const marble = marbles.find((m) => m.cell === cell && m.player !== currentTurnColor)
           if (marble) {
             setSelectedEnemyMarbleId(marble.id)
             resolve()
@@ -77,7 +77,7 @@ export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
           }
           if (!marbles.find((m) => m.cell === cell)) {
             const id = generateId()
-            const newMarbles = [...marbles, { id, cell, player: currentPlayer }]
+            const newMarbles = [...marbles, { id, cell, player: currentTurnColor }]
             setMarbles(newMarbles)
             setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
             updateGameState(newMarbles)
@@ -118,7 +118,7 @@ export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
           return
         }
         const id = generateId()
-        const newMarbles = [...marbles, { id, cell, player: currentPlayer }]
+        const newMarbles = [...marbles, { id, cell, player: currentTurnColor }]
         setMarbles(newMarbles)
         setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
         updateGameState(newMarbles)
@@ -176,7 +176,7 @@ export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
             setRotationAttempts((ra) => ra + 1)
           } else {
             setRotationAttempts(0)
-            setCurrentPlayer((p) => (p === 'black' ? 'white' : 'black'))
+            setCurrentTurnColor((p) => (p === 'black' ? 'white' : 'black'))
             setTurnStep(1)
           }
 
@@ -204,7 +204,7 @@ export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
     if (turnStep === 1 && (marbles.length === 0 || !canMoveEnemyMarble())) {
       setTurnStep(2)
     }
-  }, [turnStep, marbles, currentPlayer, canMoveEnemyMarble])
+  }, [turnStep, marbles, currentTurnColor, canMoveEnemyMarble])
 
   const setGameState = useCallback(
     (newState: {
@@ -217,7 +217,7 @@ export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
       animating?: boolean
     }) => {
       if (newState.marbles !== undefined) setMarbles(newState.marbles)
-      if (newState.currentPlayer !== undefined) setCurrentPlayer(newState.currentPlayer)
+      if (newState.currentPlayer !== undefined) setCurrentTurnColor(newState.currentPlayer)
       if (newState.turnStep !== undefined) setTurnStep(newState.turnStep)
       if (newState.selectedEnemyMarbleId !== undefined)
         setSelectedEnemyMarbleId(newState.selectedEnemyMarbleId)
@@ -230,7 +230,7 @@ export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
 
   const resetGame = () => {
     setMarbles([])
-    setCurrentPlayer(startingPlayer)
+    setCurrentTurnColor(startingPlayer)
     setTurnStep(1)
     setSelectedEnemyMarbleId(null)
     setMarblePositions({})
@@ -242,7 +242,7 @@ export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
   return {
     marbles,
     animating,
-    currentPlayer,
+    currentTurnColor,
     turnStep,
     selectedEnemyMarbleId,
     marblePositions,
@@ -252,6 +252,6 @@ export function useOfflineGameLogic(startingPlayer: Player | null = 'black') {
     animateRotation,
     resetGame,
     setGameState,
-    setCurrentPlayer,
+    setCurrentTurnColor,
   }
 }

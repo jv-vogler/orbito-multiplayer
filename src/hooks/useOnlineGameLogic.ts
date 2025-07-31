@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   subscribeToRoomUpdates,
-  syncGameState,
   syncPlayerColors,
   type OnlineGameState,
 } from '../services/gameStateService'
@@ -11,15 +10,22 @@ import type { Player } from '../types/GameState'
 export function useOnlineGameLogic(
   roomId?: string,
   playerId?: string,
-  options?: { isGameScreen?: boolean }
+  options?: {
+    isGameScreen?: boolean
+    player: Player | null
+    onPlayerUpdate?: (player: Player) => void
+  }
 ) {
-  const { isGameScreen = false } = options || {}
+  const { isGameScreen = false, player, onPlayerUpdate } = options || {}
 
   const offlineGame = useOfflineGameLogic(null)
 
   const [isHost, setIsHost] = useState(false)
+  const playerColor = player?.color ?? null
   const isMyTurn =
-    offlineGame.currentPlayer && offlineGame.currentPlayer === offlineGame.currentPlayer
+    offlineGame.currentTurnColor && playerColor && offlineGame.currentTurnColor === playerColor
+
+  console.log({ isMyTurn, playerColor })
 
   // Debug
   useEffect(() => {
@@ -44,6 +50,14 @@ export function useOnlineGameLogic(
   const animateRotation = async () => {
     if (!isMyTurn) return
     await offlineGame.animateRotation()
+  }
+
+  const handleCellClick = async (_cell: number, callback?: () => void): Promise<void> => {
+    if (!isMyTurn) return
+    if (offlineGame.animating || offlineGame.winner) {
+      callback?.()
+      return
+    }
   }
 
   const resetGame = () => {
@@ -71,16 +85,20 @@ export function useOnlineGameLogic(
         throw new Error('Current player not found in players list')
       }
 
-      offlineGame.setCurrentPlayer(currentPlayer.color)
+      offlineGame.setCurrentTurnColor(currentPlayer.color)
+
+      if (player?.color !== currentPlayer.color) {
+        onPlayerUpdate?.(currentPlayer)
+      }
     },
-    [offlineGame, playerId]
+    [offlineGame, playerId, onPlayerUpdate, player?.color]
   )
 
   const onGameStateChange = useCallback(
     (gameState: OnlineGameState | null) => {
-      if (!gameState || !offlineGame.currentPlayer) return
+      if (!gameState || !offlineGame.currentTurnColor) return
     },
-    [offlineGame.currentPlayer]
+    [offlineGame.currentTurnColor]
   )
 
   useEffect(() => {
@@ -100,9 +118,11 @@ export function useOnlineGameLogic(
     animateRotation,
     resetGame,
     setGameState,
+    handleCellClick,
     // Online-specific properties
     isMyTurn,
     isHost,
+    playerColor,
     // Online initialization and management
     initializeOnlineGame,
     setHostStatus,

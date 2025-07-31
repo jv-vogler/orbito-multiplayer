@@ -27,6 +27,16 @@ export default function OrbitoFixedMarbles() {
   const offlineGame = useOfflineGameLogic()
   const onlineGame = useOnlineGameLogic(currentRoom?.id, currentPlayer?.id, {
     isGameScreen: gameState.currentScreen === GameScreen.GAME,
+    player: currentPlayer,
+    onPlayerUpdate: (updatedPlayer) => {
+      if (currentRoom) {
+        const updatedRoom = {
+          ...currentRoom,
+          players: currentRoom.players.map((p) => (p.id === updatedPlayer.id ? updatedPlayer : p)),
+        }
+        setRoomData(updatedRoom, updatedPlayer)
+      }
+    },
   })
 
   const game = gameState.isOfflineMode ? offlineGame : onlineGame
@@ -170,7 +180,7 @@ export default function OrbitoFixedMarbles() {
           />
 
           <GameInfo
-            currentPlayer={game.currentPlayer}
+            currentPlayer={game.currentTurnColor}
             turnStep={game.turnStep}
             winner={game.winner}
             rotationAttempts={game.rotationAttempts}
