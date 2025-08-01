@@ -26,7 +26,6 @@ export default function OrbitoFixedMarbles() {
 
   const offlineGame = useOfflineGameLogic()
   const onlineGame = useOnlineGameLogic(currentRoom?.id, currentPlayer?.id, {
-    isGameScreen: gameState.currentScreen === GameScreen.GAME,
     player: currentPlayer,
     onPlayerUpdate: (updatedPlayer) => {
       if (currentRoom) {
@@ -186,6 +185,7 @@ export default function OrbitoFixedMarbles() {
             rotationAttempts={game.rotationAttempts}
             marbleCount={game.marbles.length}
             isOnline={!gameState.isOfflineMode}
+            isWaiting={!onlineGame.isMyTurn}
           />
         </div>
       </div>

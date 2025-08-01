@@ -11,28 +11,17 @@ export function useOnlineGameLogic(
   roomId?: string,
   playerId?: string,
   options?: {
-    isGameScreen?: boolean
     player: Player | null
     onPlayerUpdate?: (player: Player) => void
   }
 ) {
-  const { isGameScreen = false, player, onPlayerUpdate } = options || {}
+  const { player, onPlayerUpdate } = options || {}
 
-  const offlineGame = useOfflineGameLogic(null)
+  const offlineGame = useOfflineGameLogic()
 
   const [isHost, setIsHost] = useState(false)
   const playerColor = player?.color ?? null
-  const isMyTurn =
-    offlineGame.currentTurnColor && playerColor && offlineGame.currentTurnColor === playerColor
-
-  console.log({ isMyTurn, playerColor })
-
-  // Debug
-  useEffect(() => {
-    if (!isGameScreen) return
-
-    console.log({ offlineGame })
-  }, [isGameScreen, offlineGame])
+  const isMyTurn = true
 
   // Step 1 - Set players colors
   const initializeOnlineGame = async () => {
@@ -115,10 +104,10 @@ export function useOnlineGameLogic(
   return {
     ...offlineGame,
     // Override functions that need online behavior
-    animateRotation,
-    resetGame,
-    setGameState,
-    handleCellClick,
+    // animateRotation,
+    // resetGame,
+    // setGameState,
+    // handleCellClick,
     // Online-specific properties
     isMyTurn,
     isHost,

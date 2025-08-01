@@ -9,6 +9,7 @@ interface GameInfoProps {
   rotationAttempts: number
   marbleCount: number
   isOnline?: boolean
+  isWaiting: boolean
 }
 
 export default function GameInfo({
@@ -17,6 +18,7 @@ export default function GameInfo({
   winner,
   rotationAttempts,
   marbleCount,
+  isWaiting = false,
   isOnline = false,
 }: GameInfoProps) {
   const canRotate = turnStep === 3 && !winner && rotationAttempts < MAX_ROTATION_ATTEMPTS
@@ -31,7 +33,7 @@ export default function GameInfo({
           : 'Current Player: Black'}
       </div>
 
-      {isOnline && !currentPlayer && (
+      {isOnline && isWaiting && (
         <div className={styles.waitingMessage}>Waiting for opponent's move...</div>
       )}
 
