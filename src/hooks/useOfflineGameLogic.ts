@@ -257,7 +257,15 @@ export function useOfflineGameLogic() {
       rotationAttempts?: number
       animating?: boolean
     }) => {
-      if (newState.marbles !== undefined) setMarbles(newState.marbles)
+      if (newState.marbles !== undefined) {
+        setMarbles(newState.marbles)
+        // Rebuild marble positions when marbles change
+        const newPositions: { [id: string]: Position } = {}
+        newState.marbles.forEach(({ id, cell }) => {
+          newPositions[id] = getCellPosition(cell)
+        })
+        setMarblePositions(newPositions)
+      }
       if (newState.currentPlayer !== undefined) setCurrentTurnColor(newState.currentPlayer)
       if (newState.turnStep !== undefined) setTurnStep(newState.turnStep)
       if (newState.selectedEnemyMarbleId !== undefined)

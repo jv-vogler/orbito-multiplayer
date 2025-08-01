@@ -104,6 +104,9 @@ export function useOnlineGameLogic(
         turnStep: gameState.turnStep,
         winner: gameState.winner,
         rotationAttempts: gameState.rotationAttempts,
+        // Reset these to ensure full sync
+        selectedEnemyMarbleId: null,
+        animating: false,
       })
       setIsUpdatingFromRemote(false)
     },
