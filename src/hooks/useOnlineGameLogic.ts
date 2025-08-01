@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import {
   subscribeToRoomUpdates,
+  syncGameState,
   syncPlayerColors,
   type OnlineGameState,
 } from '../services/gameStateService'
@@ -21,11 +22,8 @@ export function useOnlineGameLogic(
 
   const [isHost, setIsHost] = useState(false)
   const [playerColor, setPlayerColor] = useState<Player['color']>(null)
+  const [isUpdatingFromRemote, setIsUpdatingFromRemote] = useState(false)
   const isMyTurn = playerColor === game.currentTurnColor
-
-  useEffect(() => {
-    console.log({ player })
-  }, [player])
 
   const initializeOnlineGame = async () => {
     if (!isHost || !roomId || !playerId) {
@@ -45,12 +43,19 @@ export function useOnlineGameLogic(
   }
 
   const handleCellClick = async (cell: number, callback?: () => void): Promise<void> => {
-    if (!isMyTurn) return
+    if (!isMyTurn || !roomId || !game.currentTurnColor || isUpdatingFromRemote) return
 
     await game.handleCellClick(cell, callback)
 
-    // TODO: Add online synchronization here when ready
-    // await syncGameState(roomId, game.gameState)
+    if (game.turnStep === 2) {
+      await syncGameState(roomId, {
+        marbles: game.marbles,
+        currentPlayer: game.currentTurnColor,
+        turnStep: game.turnStep,
+        winner: game.winner,
+        rotationAttempts: game.rotationAttempts,
+      })
+    }
   }
 
   const resetGame = () => {
@@ -88,9 +93,19 @@ export function useOnlineGameLogic(
 
   const onGameStateChange = useCallback(
     (gameState: OnlineGameState | null) => {
-      if (!gameState || !game.currentTurnColor) return
+      if (!gameState) return
+
+      setIsUpdatingFromRemote(true)
+      game.setGameState({
+        marbles: gameState.marbles,
+        currentPlayer: gameState.currentPlayer,
+        turnStep: gameState.turnStep,
+        winner: gameState.winner,
+        rotationAttempts: gameState.rotationAttempts,
+      })
+      setIsUpdatingFromRemote(false)
     },
-    [game.currentTurnColor]
+    [game]
   )
 
   useEffect(() => {
@@ -102,7 +117,8 @@ export function useOnlineGameLogic(
     })
 
     return unsubscribe
-  }, [onGameStateChange, onPlayersChange, roomId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId]) // Remove callback dependencies to prevent re-subscription
 
   return {
     ...game,
