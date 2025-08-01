@@ -20,8 +20,12 @@ export function useOnlineGameLogic(
   const game = useGame()
 
   const [isHost, setIsHost] = useState(false)
-  const playerColor = player?.color ?? null
-  const isMyTurn = true
+  const [playerColor, setPlayerColor] = useState<Player['color']>(null)
+  const isMyTurn = playerColor === game.currentTurnColor
+
+  useEffect(() => {
+    console.log({ player })
+  }, [player])
 
   const initializeOnlineGame = async () => {
     if (!isHost || !roomId || !playerId) {
@@ -74,13 +78,12 @@ export function useOnlineGameLogic(
         throw new Error('Current player not found in players list')
       }
 
-      game.setCurrentTurnColor(currentPlayer.color)
-
-      if (player?.color !== currentPlayer.color) {
+      if (!playerColor) {
+        setPlayerColor(currentPlayer.color)
         onPlayerUpdate?.(currentPlayer)
       }
     },
-    [game, playerId, onPlayerUpdate, player?.color]
+    [onPlayerUpdate, playerColor, playerId]
   )
 
   const onGameStateChange = useCallback(
