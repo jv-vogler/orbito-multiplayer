@@ -32,6 +32,7 @@ export interface OnlineGameState {
   turnStep: GameState['turnStep']
   winner: GameState['winner']
   rotationAttempts: GameState['rotationAttempts']
+  turnNumber: number
 }
 
 export interface PlayerColorAssignment {

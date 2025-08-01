@@ -33,9 +33,9 @@ export default function GameInfo({
           : 'Current Player: Black'}
       </div>
 
-      {isOnline && isWaiting && (
-        <div className={styles.waitingMessage}>Waiting for opponent's move...</div>
-      )}
+      <div className={`${styles.waitingMessage} ${isOnline && isWaiting ? styles.waitingMessageVisible : styles.waitingMessageHidden}`}>
+        Waiting for opponent's move...
+      </div>
 
       <div className={styles.steps}>
         {([1, 2, 3] as const).map((step) => (

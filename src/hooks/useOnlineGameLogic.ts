@@ -5,23 +5,24 @@ import {
   syncPlayerColors,
   type OnlineGameState,
 } from '../services/gameStateService'
-import type { Player } from '../types/GameState'
+import type { Player as PlayerObject } from '../types/GameState'
+import type { Marble, TurnStep, Winner, Player } from '../types/game'
 import { useGame } from './useGame'
 
 export function useOnlineGameLogic(
   roomId?: string,
   playerId?: string,
   options?: {
-    player: Player | null
-    onPlayerUpdate?: (player: Player) => void
+    player: PlayerObject | null
+    onPlayerUpdate?: (player: PlayerObject) => void
   }
 ) {
-  const { player, onPlayerUpdate } = options || {}
+  const { onPlayerUpdate } = options || {}
 
   const game = useGame()
 
   const [isHost, setIsHost] = useState(false)
-  const [playerColor, setPlayerColor] = useState<Player['color']>(null)
+  const [playerColor, setPlayerColor] = useState<Player | null>(null)
   const [isUpdatingFromRemote, setIsUpdatingFromRemote] = useState(false)
   const isMyTurn = playerColor === game.currentTurnColor
 
@@ -38,24 +39,52 @@ export function useOnlineGameLogic(
   }
 
   const animateRotation = async () => {
-    if (!isMyTurn) return
-    await game.animateRotation()
+    if (!isMyTurn || !roomId || isUpdatingFromRemote || !playerId) return
+
+    // Start local animation and get the final state
+    const finalState = await game.animateRotation()
+
+    // Sync the final state after animation completes
+    if (finalState) {
+      await syncGameState(roomId, {
+        marbles: finalState.marbles,
+        currentPlayer: finalState.currentTurnColor,
+        turnStep: finalState.turnStep,
+        winner: finalState.winner,
+        rotationAttempts: finalState.rotationAttempts,
+        turnNumber: finalState.turnNumber,
+      })
+    }
   }
 
-  const handleCellClick = async (cell: number, callback?: () => void): Promise<void> => {
-    if (!isMyTurn || !roomId || !game.currentTurnColor || isUpdatingFromRemote) return
+  const handleCellClick = async (
+    cell: number,
+    callback?: () => void
+  ): Promise<{
+    marbles: Marble[]
+    currentTurnColor: Player | null
+    turnStep: TurnStep
+    winner: Winner
+    rotationAttempts: number
+    turnNumber: number
+  } | null> => {
+    if (!isMyTurn || !roomId || !game.currentTurnColor || isUpdatingFromRemote) return null
 
     const updatedGameState = await game.handleCellClick(cell, callback)
 
-    if (updatedGameState && updatedGameState.turnStep === 3) {
+    if (updatedGameState) {
+      // Sync state for any move (enemy movement in step 1 or marble placement in step 2/3)
       await syncGameState(roomId, {
         marbles: updatedGameState.marbles,
         currentPlayer: updatedGameState.currentTurnColor,
         turnStep: updatedGameState.turnStep,
         winner: updatedGameState.winner,
         rotationAttempts: updatedGameState.rotationAttempts,
+        turnNumber: updatedGameState.turnNumber,
       })
     }
+
+    return updatedGameState
   }
 
   const resetGame = () => {
@@ -74,7 +103,7 @@ export function useOnlineGameLogic(
   }
 
   const onPlayersChange = useCallback(
-    (players: Player[] | null) => {
+    (players: PlayerObject[] | null) => {
       if (!players) return
 
       const currentPlayer = players.find((p) => p.id === playerId)
@@ -95,22 +124,43 @@ export function useOnlineGameLogic(
     (gameState: OnlineGameState | null) => {
       if (!gameState) return
 
-      console.log('Game state updated:', { gameState, player, game })
-
       setIsUpdatingFromRemote(true)
-      game.setGameState({
-        marbles: gameState.marbles,
-        currentPlayer: gameState.currentPlayer,
-        turnStep: gameState.turnStep,
-        winner: gameState.winner,
-        rotationAttempts: gameState.rotationAttempts,
-        // Reset these to ensure full sync
-        selectedEnemyMarbleId: null,
-        animating: false,
-      })
+
+      // Check if this is a rotation (turnNumber increased)
+      if (gameState.turnNumber > game.turnNumber) {
+        // A rotation happened! Start local animation first, then apply the final state
+        game.animateRotation().then(() => {
+          // After animation completes, apply the received state
+          game.setGameState({
+            marbles: gameState.marbles,
+            currentPlayer: gameState.currentPlayer,
+            turnStep: gameState.turnStep,
+            winner: gameState.winner,
+            rotationAttempts: gameState.rotationAttempts,
+            turnNumber: gameState.turnNumber,
+            // Reset these to ensure full sync
+            selectedEnemyMarbleId: null,
+            animating: false,
+          })
+        })
+      } else {
+        // Regular state update (not a rotation)
+        game.setGameState({
+          marbles: gameState.marbles,
+          currentPlayer: gameState.currentPlayer,
+          turnStep: gameState.turnStep,
+          winner: gameState.winner,
+          rotationAttempts: gameState.rotationAttempts,
+          turnNumber: gameState.turnNumber,
+          // Reset these to ensure full sync
+          selectedEnemyMarbleId: null,
+          animating: false,
+        })
+      }
+
       setIsUpdatingFromRemote(false)
     },
-    [game, player]
+    [game]
   )
 
   useEffect(() => {

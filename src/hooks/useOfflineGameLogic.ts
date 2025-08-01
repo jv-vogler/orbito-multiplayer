@@ -18,8 +18,7 @@ export function useOfflineGameLogic() {
   const [marblePositions, setMarblePositions] = useState<{ [id: string]: Position }>({})
   const [winner, setWinner] = useState<Winner>(null)
   const [rotationAttempts, setRotationAttempts] = useState(0)
-
-  console.log({ currentTurnColor })
+  const [turnNumber, setTurnNumber] = useState(0)
 
   const canMoveEnemyMarble = useCallback(() => {
     const enemyMarbles = marbles.filter((m) => m.player !== currentTurnColor)
@@ -67,6 +66,7 @@ export function useOfflineGameLogic() {
     turnStep: TurnStep
     winner: Winner
     rotationAttempts: number
+    turnNumber: number
   } | null> {
     return new Promise((resolve) => {
       if (currentTurnColor === null) {
@@ -103,6 +103,7 @@ export function useOfflineGameLogic() {
               turnStep: 3 as TurnStep,
               winner,
               rotationAttempts,
+              turnNumber,
             }
             resolve(newState)
             callback?.()
@@ -131,6 +132,7 @@ export function useOfflineGameLogic() {
               turnStep: 2 as TurnStep,
               winner,
               rotationAttempts,
+              turnNumber,
             }
             resolve(newState)
             callback?.()
@@ -163,6 +165,7 @@ export function useOfflineGameLogic() {
           turnStep: 3 as TurnStep,
           winner,
           rotationAttempts,
+          turnNumber,
         }
         resolve(newState)
         callback?.()
@@ -175,10 +178,19 @@ export function useOfflineGameLogic() {
   }
 
   const animateRotation = useCallback(
-    (callback?: () => void): Promise<void> => {
+    (
+      callback?: () => void
+    ): Promise<{
+      marbles: Marble[]
+      currentTurnColor: Player | null
+      turnStep: TurnStep
+      winner: Winner
+      rotationAttempts: number
+      turnNumber: number
+    } | null> => {
       return new Promise((resolve) => {
         if (animating || turnStep !== 3 || winner) {
-          resolve()
+          resolve(null)
           callback?.()
           return
         }
@@ -208,25 +220,63 @@ export function useOfflineGameLogic() {
           const hasWinner = winners.black || winners.white
 
           if (hasWinner || (winners.black && winners.white)) {
-            resolve()
+            const newTurnNumber = turnNumber + 1
+            setTurnNumber(newTurnNumber)
+            const finalState = {
+              marbles: newMarbles,
+              currentTurnColor,
+              turnStep,
+              winner,
+              rotationAttempts,
+              turnNumber: newTurnNumber,
+            }
+            resolve(finalState)
             callback?.()
             return
           }
 
+          let newRotationAttempts = rotationAttempts
+          let newCurrentTurnColor = currentTurnColor
+          let newTurnStep: TurnStep = turnStep
+
           if (newMarbles.length === BOARD_SIZE * BOARD_SIZE) {
-            setRotationAttempts((ra) => ra + 1)
+            newRotationAttempts = rotationAttempts + 1
+            setRotationAttempts(newRotationAttempts)
           } else {
+            newRotationAttempts = 0
             setRotationAttempts(0)
-            setCurrentTurnColor((p) => (p === 'black' ? 'white' : 'black'))
-            setTurnStep(1)
+            newCurrentTurnColor = currentTurnColor === 'black' ? 'white' : 'black'
+            newTurnStep = 1
+            setCurrentTurnColor(newCurrentTurnColor)
+            setTurnStep(newTurnStep)
           }
 
-          resolve()
+          const newTurnNumber = turnNumber + 1
+          setTurnNumber(newTurnNumber)
+
+          const finalState = {
+            marbles: newMarbles,
+            currentTurnColor: newCurrentTurnColor,
+            turnStep: newTurnStep,
+            winner,
+            rotationAttempts: newRotationAttempts,
+            turnNumber: newTurnNumber,
+          }
+          resolve(finalState)
           callback?.()
         }, 400)
       })
     },
-    [animating, turnStep, winner, marbles, updateGameState]
+    [
+      animating,
+      turnStep,
+      winner,
+      marbles,
+      updateGameState,
+      currentTurnColor,
+      rotationAttempts,
+      turnNumber,
+    ]
   )
 
   useEffect(() => {
@@ -250,12 +300,13 @@ export function useOfflineGameLogic() {
   const setGameState = useCallback(
     (newState: {
       marbles?: Marble[]
-      currentPlayer?: Player
+      currentPlayer?: Player | null
       turnStep?: TurnStep
       selectedEnemyMarbleId?: string | null
       winner?: Winner
       rotationAttempts?: number
       animating?: boolean
+      turnNumber?: number
     }) => {
       if (newState.marbles !== undefined) {
         setMarbles(newState.marbles)
@@ -273,6 +324,7 @@ export function useOfflineGameLogic() {
       if (newState.winner !== undefined) setWinner(newState.winner)
       if (newState.rotationAttempts !== undefined) setRotationAttempts(newState.rotationAttempts)
       if (newState.animating !== undefined) setAnimating(newState.animating)
+      if (newState.turnNumber !== undefined) setTurnNumber(newState.turnNumber)
     },
     []
   )
@@ -286,6 +338,7 @@ export function useOfflineGameLogic() {
     setWinner(null)
     setRotationAttempts(0)
     setAnimating(false)
+    setTurnNumber(0)
   }
 
   return {
@@ -297,6 +350,7 @@ export function useOfflineGameLogic() {
     marblePositions,
     winner,
     rotationAttempts,
+    turnNumber,
     handleCellClick,
     animateRotation,
     resetGame,

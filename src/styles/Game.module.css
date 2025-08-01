@@ -131,6 +131,16 @@
   animation: pulse 2s infinite;
 }
 
+.waitingMessageVisible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.waitingMessageHidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
 @keyframes pulse {
   0%,
   100% {

@@ -11,6 +11,7 @@ export interface GameContextType {
   marblePositions: { [id: string]: Position }
   winner: Winner
   rotationAttempts: number
+  turnNumber: number
 
   // Game actions
   handleCellClick: (
@@ -22,8 +23,16 @@ export interface GameContextType {
     turnStep: TurnStep
     winner: Winner
     rotationAttempts: number
+    turnNumber: number
   } | null>
-  animateRotation: (callback?: () => void) => Promise<void>
+  animateRotation: (callback?: () => void) => Promise<{
+    marbles: Marble[]
+    currentTurnColor: Player | null
+    turnStep: TurnStep
+    winner: Winner
+    rotationAttempts: number
+    turnNumber: number
+  } | null>
   resetGame: () => void
   setGameState: (newState: {
     marbles?: Marble[]
@@ -33,6 +42,7 @@ export interface GameContextType {
     winner?: Winner
     rotationAttempts?: number
     animating?: boolean
+    turnNumber?: number
   }) => void
   setCurrentTurnColor: (color: Player | null) => void
 }
