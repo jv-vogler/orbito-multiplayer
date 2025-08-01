@@ -4,8 +4,8 @@ import {
   syncPlayerColors,
   type OnlineGameState,
 } from '../services/gameStateService'
-import { useOfflineGameLogic } from './useOfflineGameLogic'
 import type { Player } from '../types/GameState'
+import { useGame } from './useGame'
 
 export function useOnlineGameLogic(
   roomId?: string,
@@ -17,19 +17,18 @@ export function useOnlineGameLogic(
 ) {
   const { player, onPlayerUpdate } = options || {}
 
-  const offlineGame = useOfflineGameLogic()
+  const game = useGame()
 
   const [isHost, setIsHost] = useState(false)
   const playerColor = player?.color ?? null
   const isMyTurn = true
 
-  // Step 1 - Set players colors
   const initializeOnlineGame = async () => {
     if (!isHost || !roomId || !playerId) {
       return
     }
 
-    offlineGame.resetGame()
+    game.resetGame()
 
     const hostColor = Math.random() < 0.5 ? 'black' : 'white'
 
@@ -38,26 +37,27 @@ export function useOnlineGameLogic(
 
   const animateRotation = async () => {
     if (!isMyTurn) return
-    await offlineGame.animateRotation()
+    await game.animateRotation()
   }
 
-  const handleCellClick = async (_cell: number, callback?: () => void): Promise<void> => {
+  const handleCellClick = async (cell: number, callback?: () => void): Promise<void> => {
     if (!isMyTurn) return
-    if (offlineGame.animating || offlineGame.winner) {
-      callback?.()
-      return
-    }
+
+    await game.handleCellClick(cell, callback)
+
+    // TODO: Add online synchronization here when ready
+    // await syncGameState(roomId, game.gameState)
   }
 
   const resetGame = () => {
-    offlineGame.resetGame()
+    game.resetGame()
   }
 
   const setGameState = useCallback(
-    (newState: Parameters<typeof offlineGame.setGameState>[0]) => {
-      offlineGame.setGameState(newState)
+    (newState: Parameters<typeof game.setGameState>[0]) => {
+      game.setGameState(newState)
     },
-    [offlineGame]
+    [game]
   )
 
   const setHostStatus = (hostStatus: boolean) => {
@@ -74,20 +74,20 @@ export function useOnlineGameLogic(
         throw new Error('Current player not found in players list')
       }
 
-      offlineGame.setCurrentTurnColor(currentPlayer.color)
+      game.setCurrentTurnColor(currentPlayer.color)
 
       if (player?.color !== currentPlayer.color) {
         onPlayerUpdate?.(currentPlayer)
       }
     },
-    [offlineGame, playerId, onPlayerUpdate, player?.color]
+    [game, playerId, onPlayerUpdate, player?.color]
   )
 
   const onGameStateChange = useCallback(
     (gameState: OnlineGameState | null) => {
-      if (!gameState || !offlineGame.currentTurnColor) return
+      if (!gameState || !game.currentTurnColor) return
     },
-    [offlineGame.currentTurnColor]
+    [game.currentTurnColor]
   )
 
   useEffect(() => {
@@ -102,12 +102,12 @@ export function useOnlineGameLogic(
   }, [onGameStateChange, onPlayersChange, roomId])
 
   return {
-    ...offlineGame,
-    // Override functions that need online behavior
-    // animateRotation,
-    // resetGame,
-    // setGameState,
-    // handleCellClick,
+    ...game,
+    // Override functions with online behavior
+    animateRotation,
+    resetGame,
+    setGameState,
+    handleCellClick,
     // Online-specific properties
     isMyTurn,
     isHost,

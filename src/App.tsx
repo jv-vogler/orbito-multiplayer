@@ -1,17 +1,17 @@
+import { useEffect } from 'react'
+import { CreateRoom } from './components/CreateRoom'
 import GameBoard from './components/GameBoard'
 import { GameContainer } from './components/GameContainer'
 import GameInfo from './components/GameInfo'
-import { MainMenu } from './components/MainMenu'
-import { CreateRoom } from './components/CreateRoom'
 import { JoinRoom } from './components/JoinRoom'
+import { MainMenu } from './components/MainMenu'
 import { RoomLobby } from './components/RoomLobby'
-import { useOfflineGameLogic } from './hooks/useOfflineGameLogic'
-import { useOnlineGameLogic } from './hooks/useOnlineGameLogic'
+import { useGame } from './hooks/useGame'
 import { useGameState } from './hooks/useGameState'
+import { useOnlineGameLogic } from './hooks/useOnlineGameLogic'
 import { createRoom, joinRoom } from './services/roomService'
 import styles from './styles/Game.module.css'
 import { GameScreen } from './types/GameState'
-import { useEffect } from 'react'
 
 export default function OrbitoFixedMarbles() {
   const {
@@ -24,19 +24,23 @@ export default function OrbitoFixedMarbles() {
     clearRoomData,
   } = useGameState()
 
-  const offlineGame = useOfflineGameLogic()
-  const onlineGame = useOnlineGameLogic(currentRoom?.id, currentPlayer?.id, {
-    player: currentPlayer,
-    onPlayerUpdate: (updatedPlayer) => {
-      if (currentRoom) {
-        const updatedRoom = {
-          ...currentRoom,
-          players: currentRoom.players.map((p) => (p.id === updatedPlayer.id ? updatedPlayer : p)),
+  const offlineGame = useGame()
+  const onlineGame = useOnlineGameLogic(
+    !gameState.isOfflineMode ? currentRoom?.id : undefined,
+    !gameState.isOfflineMode ? currentPlayer?.id : undefined,
+    !gameState.isOfflineMode ? {
+      player: currentPlayer,
+      onPlayerUpdate: (updatedPlayer) => {
+        if (currentRoom) {
+          const updatedRoom = {
+            ...currentRoom,
+            players: currentRoom.players.map((p) => (p.id === updatedPlayer.id ? updatedPlayer : p)),
+          }
+          setRoomData(updatedRoom, updatedPlayer)
         }
-        setRoomData(updatedRoom, updatedPlayer)
-      }
-    },
-  })
+      },
+    } : undefined
+  )
 
   const game = gameState.isOfflineMode ? offlineGame : onlineGame
 
