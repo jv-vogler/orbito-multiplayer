@@ -28,7 +28,7 @@ interface FirestoreRoomData {
 
 export interface OnlineGameState {
   marbles: GameState['marbles']
-  currentPlayer: GameState['currentPlayer']
+  currentPlayer: GameState['currentPlayer'] | null
   turnStep: GameState['turnStep']
   winner: GameState['winner']
   rotationAttempts: GameState['rotationAttempts']

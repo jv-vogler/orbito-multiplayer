@@ -58,12 +58,24 @@ export function useOfflineGameLogic() {
     [rotationAttempts]
   )
 
-  function handleCellClick(cell: number, callback?: () => void): Promise<void> {
+  function handleCellClick(
+    cell: number,
+    callback?: () => void
+  ): Promise<{
+    marbles: Marble[]
+    currentTurnColor: Player | null
+    turnStep: TurnStep
+    winner: Winner
+    rotationAttempts: number
+  } | null> {
     return new Promise((resolve) => {
-      if (currentTurnColor === null) return
+      if (currentTurnColor === null) {
+        resolve(null)
+        return
+      }
 
       if (animating || winner) {
-        resolve()
+        resolve(null)
         callback?.()
         return
       }
@@ -73,7 +85,7 @@ export function useOfflineGameLogic() {
           const marble = marbles.find((m) => m.cell === cell && m.player !== currentTurnColor)
           if (marble) {
             setSelectedEnemyMarbleId(marble.id)
-            resolve()
+            resolve(null)
             callback?.()
             return
           }
@@ -84,7 +96,15 @@ export function useOfflineGameLogic() {
             setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
             updateGameState(newMarbles)
             setTurnStep(3)
-            resolve()
+
+            const newState = {
+              marbles: newMarbles,
+              currentTurnColor,
+              turnStep: 3 as TurnStep,
+              winner,
+              rotationAttempts,
+            }
+            resolve(newState)
             callback?.()
             return
           }
@@ -104,18 +124,29 @@ export function useOfflineGameLogic() {
             setSelectedEnemyMarbleId(null)
             updateGameState(newMarbles)
             setTurnStep(2)
+
+            const newState = {
+              marbles: newMarbles,
+              currentTurnColor,
+              turnStep: 2 as TurnStep,
+              winner,
+              rotationAttempts,
+            }
+            resolve(newState)
+            callback?.()
+            return
           } else {
             setSelectedEnemyMarbleId(null)
           }
         }
-        resolve()
+        resolve(null)
         callback?.()
         return
       }
 
       if (turnStep === 2) {
         if (marbles.find((m) => m.cell === cell)) {
-          resolve()
+          resolve(null)
           callback?.()
           return
         }
@@ -125,12 +156,20 @@ export function useOfflineGameLogic() {
         setMarblePositions((pos) => ({ ...pos, [id]: getCellPosition(cell) }))
         updateGameState(newMarbles)
         setTurnStep(3)
-        resolve()
+
+        const newState = {
+          marbles: newMarbles,
+          currentTurnColor,
+          turnStep: 3 as TurnStep,
+          winner,
+          rotationAttempts,
+        }
+        resolve(newState)
         callback?.()
         return
       }
 
-      resolve()
+      resolve(null)
       callback?.()
     })
   }

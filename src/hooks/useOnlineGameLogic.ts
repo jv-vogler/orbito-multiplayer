@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, useRef } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   subscribeToRoomUpdates,
   syncGameState,
@@ -45,15 +45,15 @@ export function useOnlineGameLogic(
   const handleCellClick = async (cell: number, callback?: () => void): Promise<void> => {
     if (!isMyTurn || !roomId || !game.currentTurnColor || isUpdatingFromRemote) return
 
-    await game.handleCellClick(cell, callback)
+    const updatedGameState = await game.handleCellClick(cell, callback)
 
-    if (game.turnStep === 2) {
+    if (updatedGameState && updatedGameState.turnStep === 3) {
       await syncGameState(roomId, {
-        marbles: game.marbles,
-        currentPlayer: game.currentTurnColor,
-        turnStep: game.turnStep,
-        winner: game.winner,
-        rotationAttempts: game.rotationAttempts,
+        marbles: updatedGameState.marbles,
+        currentPlayer: updatedGameState.currentTurnColor,
+        turnStep: updatedGameState.turnStep,
+        winner: updatedGameState.winner,
+        rotationAttempts: updatedGameState.rotationAttempts,
       })
     }
   }
@@ -95,6 +95,8 @@ export function useOnlineGameLogic(
     (gameState: OnlineGameState | null) => {
       if (!gameState) return
 
+      console.log('Game state updated:', { gameState, player, game })
+
       setIsUpdatingFromRemote(true)
       game.setGameState({
         marbles: gameState.marbles,
@@ -105,7 +107,7 @@ export function useOnlineGameLogic(
       })
       setIsUpdatingFromRemote(false)
     },
-    [game]
+    [game, player]
   )
 
   useEffect(() => {
